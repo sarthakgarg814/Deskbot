@@ -47,5 +47,22 @@ deskbot/
 
 ## Status
 
-Design phase. No feature code yet — see [Milestone 1](docs/05-milestone-1.md) for
-the first vertical slice (backend + dashboard on stubbed hardware).
+**Milestone 1 complete** — backend + dashboard skeleton on mock hardware.
+
+- `core` FastAPI service: REST + WebSocket, SQLite (seeded), 1 Hz system sampler,
+  in-process bus, mock hardware behind the HAL seam. 5 smoke tests pass.
+- React dashboard: live Home tiles, Notes (CRUD + search), Settings editor,
+  Hardware test page (servo/LED/OLED). Backend serves the built bundle.
+
+Run it:
+
+```bash
+make setup            # venv + backend deps (mock hardware)
+make frontend-install
+make frontend-build   # -> frontend/dist
+make backend          # http://localhost:8000
+# or dev mode with hot reload: `make backend` + `make frontend-dev` (:5173)
+```
+
+Next: **Milestone 2 — camera face-tracking** (vision process, MediaPipe, servo
+arbiter + PID). See [docs/05-milestone-1.md](docs/05-milestone-1.md#exit-milestone-2).
