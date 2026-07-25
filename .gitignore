@@ -1,0 +1,35 @@
+# --- Python (backend) ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+.vite/
+*.local
+
+# --- DeskBot runtime artifacts ---
+logs/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+deskbot.db*
+
+# --- AI models (downloaded, not committed) ---
+models/*
+!models/.gitkeep
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
