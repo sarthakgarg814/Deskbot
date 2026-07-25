@@ -1,0 +1,41 @@
+[project]
+name = "deskbot-backend"
+version = "0.1.0"
+description = "DeskBot AI backend — core, common, hardware services"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "sqlalchemy>=2.0",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "apscheduler>=3.10",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+# Installed ONLY on the Raspberry Pi (real hardware backend). Kept out of the
+# base deps so the backend installs and runs on a laptop against mocks.
+pi = [
+    "gpiozero>=2.0",
+    "pigpio>=1.78",
+    "luma.oled>=3.12",
+    "rpi_ws281x>=5.0",
+    "picamera2>=0.3",
+]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+    "ruff>=0.4",
+]
+
+[tool.setuptools]
+packages = ["common", "core", "hardware"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

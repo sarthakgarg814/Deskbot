@@ -1,0 +1,50 @@
+# DeskBot bootstrap + seed config.
+#
+# Two parts:
+#   runtime:  low-level config read BEFORE the DB exists (paths, ports, backend).
+#   settings: seed rows for the `settings` table — the dashboard-editable tunables.
+#             On first boot these are inserted; existing keys are left untouched so
+#             user edits from the dashboard are never overwritten.
+
+runtime:
+  hardware_backend: mock        # mock | real   (Milestone 1 = mock; the Pi uses real)
+  db_path: deskbot.db           # relative to repo root
+  host: 0.0.0.0
+  port: 8000
+  log_level: INFO
+  # Where the built frontend lands (vite build on laptop -> copied here on the Pi)
+  frontend_dist: ../frontend/dist
+
+settings:
+  # --- system ---
+  - { key: system.timezone,        value: "UTC",     type: str,   namespace: system }
+  - { key: system.hostname,        value: "deskbot", type: str,   namespace: system }
+
+  # --- camera / tracking ---
+  - { key: camera.fps,             value: 18,        type: int,   namespace: camera }
+  - { key: camera.tracking_mode,   value: "smooth",  type: str,   namespace: camera }
+  - { key: camera.sensitivity,     value: 0.5,       type: float, namespace: camera }
+
+  # --- servo / PID (dashboard-tunable, hot-reloaded by hardware svc) ---
+  - { key: servo.pan.offset_deg,   value: 0,         type: int,   namespace: servo }
+  - { key: servo.tilt.offset_deg,  value: 0,         type: int,   namespace: servo }
+  - { key: servo.pid.pan.kp,       value: 0.08,      type: float, namespace: servo }
+  - { key: servo.pid.pan.ki,       value: 0.0,       type: float, namespace: servo }
+  - { key: servo.pid.pan.kd,       value: 0.01,      type: float, namespace: servo }
+  - { key: servo.pid.tilt.kp,      value: 0.08,      type: float, namespace: servo }
+  - { key: servo.pid.tilt.ki,      value: 0.0,       type: float, namespace: servo }
+  - { key: servo.pid.tilt.kd,      value: 0.01,      type: float, namespace: servo }
+  - { key: servo.deadzone,         value: 0.03,      type: float, namespace: servo }
+
+  # --- led ---
+  - { key: led.brightness,         value: 0.4,       type: float, namespace: led }
+  - { key: led.count,              value: 8,         type: int,   namespace: led }
+
+  # --- voice ---
+  - { key: voice.wake_word,        value: "deskbot", type: str,   namespace: voice }
+  - { key: voice.language,         value: "en",      type: str,   namespace: voice }
+  - { key: voice.confidence_min,   value: 0.6,       type: float, namespace: voice }
+
+  # --- mood ---
+  - { key: mood.enabled,           value: true,      type: bool,  namespace: mood }
+  - { key: mood.sample_interval_s, value: 5,         type: int,   namespace: mood }
