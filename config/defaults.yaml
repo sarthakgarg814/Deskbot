@@ -12,8 +12,9 @@ runtime:
   host: 0.0.0.0
   port: 8000
   log_level: INFO
-  # Where the built frontend lands (vite build on laptop -> copied here on the Pi)
-  frontend_dist: ../frontend/dist
+  # Where the built frontend lands (vite build on laptop -> copied here on the Pi).
+  # Resolved relative to the repo root.
+  frontend_dist: frontend/dist
 
 settings:
   # --- system ---

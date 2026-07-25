@@ -10,8 +10,9 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from common.bus import make_bus
@@ -80,9 +81,18 @@ def create_app() -> FastAPI:
             hub.disconnect(ws)
 
     # Serve the built dashboard if it exists (vite build -> frontend/dist).
+    # Assets are mounted; every other non-API path falls back to index.html so
+    # client-side routes (/notes, /settings) survive a hard refresh.
     cfg = load_config()
-    if cfg.frontend_dist and cfg.frontend_dist.exists():
-        app.mount("/", StaticFiles(directory=str(cfg.frontend_dist), html=True), name="frontend")
+    dist = cfg.frontend_dist
+    if dist and dist.exists():
+        app.mount("/assets", StaticFiles(directory=str(dist / "assets")), name="assets")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def spa_fallback(full_path: str):
+            if full_path.startswith(("api/", "ws")):
+                raise HTTPException(404)
+            return FileResponse(dist / "index.html")
 
     return app
 
