@@ -32,7 +32,7 @@ real servos yet, but the wiring, live updates, and settings persistence are real
 
 ## Scope OUT (later milestones)
 
-Face tracking, PID, camera, presence, water detection, voice/wake word/STT,
+Face tracking, PID, camera, presence, mood detection, voice/wake word/STT,
 calendar sync, LED animations on real strip, OLED real render, touch. Their API
 endpoints may exist but return `501`/stub until their milestone.
 

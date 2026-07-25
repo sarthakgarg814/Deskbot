@@ -4,9 +4,9 @@
 
 | Principle | What it means in the code |
 |-----------|---------------------------|
-| Privacy first | No audio/video/frames leave the device. Cloud calls (calendar, optional LLM) are opt-in and logged. |
-| Local AI first | Deterministic methods before ML. ML models run on-device via ONNX / Vosk / MediaPipe. |
-| Cloud optional | The whole system runs with WiFi off, minus calendar sync and optional LLM. |
+| Privacy first | No audio/video/frames leave the device. Mood is stored as a **label only**, never an image. Cloud calls (calendar sync) are opt-in and logged. |
+| Local AI first | Deterministic methods before ML. ML models run on-device via ONNX / Vosk / MediaPipe. **No LLM** in current scope. |
+| Cloud optional | The whole system runs with WiFi off, minus calendar sync. |
 | Modular | Four independent OS processes, each restartable, communicating over a message bus. |
 | Offline friendly | Frontend served locally, all data in local SQLite, models pre-downloaded. |
 | Easy configuration | Every tunable lives in the DB `settings` table and is editable from the dashboard. |
@@ -24,8 +24,8 @@ each managed by `systemd`:
 
 - **`core`** — FastAPI, WebSocket, SQLite (sole writer), scheduler, reminder
   engine, calendar sync, notes, serves the React dashboard. The coordinator.
-- **`vision`** — camera capture, face detection, presence, periodic water
-  detection. CPU-heavy, isolated.
+- **`vision`** — camera capture, face detection, presence, periodic mood
+  detection (FER on the existing face crop). CPU-heavy, isolated.
 - **`hardware`** — OLED render loop, LED animations, **servo driver + arbiter**,
   touch polling, hardware monitor. Sole owner of GPIO/I2C/PWM.
 - **`voice`** — wake word (always on), STT (on demand), intent matching.
@@ -62,7 +62,7 @@ IPC. Redis is battle-tested on ARM and gives us the state cache for free.
 
 ### D4 — SQLite with a single writer
 `core` is the only process that writes SQLite (WAL mode). `vision`/`voice`/
-`hardware` **publish events**; `core` subscribes and persists (water logs, voice
+`hardware` **publish events**; `core` subscribes and persists (mood logs, voice
 commands, activity). This eliminates multi-process write locking and keeps the
 data model in one place.
 
@@ -77,6 +77,7 @@ data model in one place.
 | D5 | Frontend built static, served by `core` at `deskbot.local` — **built on laptop, copied to Pi** | **Accepted** | Build on Pi; separate node server |
 | D6 | **pigpio (via gpiozero) for direct-GPIO servo PWM** | **Accepted** | RPi.GPIO software PWM; PCA9685 I2C driver (kept as optional backend behind same interface) |
 | D7 | Config lives in DB `settings`, mirrored to `config/*.yaml` defaults | Proposed | Pure file config |
+| D8 | **Scope: drop water tracking + drop local LLM; add mood detection** (FER model on the face crop, label-only storage) | **Accepted** | Keep water; local LLM; MediaPipe blendshapes as primary |
 
 Update this table as decisions are accepted/changed. "Proposed" → "Accepted"
 after your review. D1/D2/D4/D7 still want an explicit thumbs-up.
@@ -94,3 +95,6 @@ Still open (none block starting Milestone 1 — they land in later milestones):
    free access key, better accuracy). PRD lists both. *(Voice milestone)*
 3. **Google Calendar OAuth on a headless-ish Pi:** device-flow / one-time browser
    auth on the dashboard? Confirm Google (vs. CalDAV/ICS) for v1. *(Productivity milestone)*
+4. **Mood model + label set:** small FER ONNX (FER2013/AffectNet) on the face
+   crop is the plan. Final label set TBD — recommend collapsing the noisy FER
+   classes to `happy / neutral / sad / stressed / surprised`. *(Mood milestone)*

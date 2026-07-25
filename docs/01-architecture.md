@@ -19,7 +19,7 @@
 │ camera loop  │ │ wake word    │      │ OLED loop    │   │  bus + cache  │
 │ face detect  │ │ STT          │      │ LED loop     │   └──────────────┘
 │ presence     │ │ intent match │      │ SERVO ARBITER│
-│ water detect │ │              │      │ + PID        │
+│ mood detect  │ │              │      │ + PID        │
 │              │ │              │      │ touch poll   │
 │ publishes    │ │ publishes    │      │ hw monitor   │
 │ targets      │ │ intents      │      │ owns GPIO    │
@@ -36,8 +36,8 @@ between processes flows through Redis.
 - Owns the WebSocket: subscribes to Redis `state:*` / event topics and fans out
   to browsers.
 - Owns SQLite: all writes. Subscribes to `event.*` topics and persists.
-- Runs **APScheduler** jobs: calendar sync (15 min), water-reminder check, daily
-  rollups, hardware-monitor heartbeat.
+- Runs **APScheduler** jobs: calendar sync (15 min), meeting-reminder check,
+  daily mood rollups, hardware-monitor heartbeat.
 - **Reminder engine**: turns schedule/state changes into commands (LED yellow,
   OLED reminder, future voice) by publishing to `cmd.*` topics.
 - No realtime hard-deadline work → asyncio is fine here.
@@ -48,9 +48,10 @@ between processes flows through Redis.
   frame center → publish `cmd.servo.target` at 20–30 Hz (throttled, dead-zoned).
 - **Presence** state machine (`present`/`away`/`unknown`) → publish
   `event.presence` + cache `state:presence`.
-- **Water detection** runs on a slow cadence (every N seconds, not per frame):
-  YOLOv8-nano (ONNX Runtime) for bottle/cup + MediaPipe Pose for drinking motion
-  → publish `event.water.sip`.
+- **Mood detection** runs on a slow cadence (every N seconds, not per frame) on
+  the **face crop already produced for tracking**: a small FER model (ONNX
+  Runtime) → emotion label + confidence → publish `event.mood`. Cheap — no second
+  pipeline. Image is never stored, only the label.
 - Publishes `state:camera` (fps, latency, tracking mode, last face bbox).
 - No servo writes — only targets.
 
@@ -71,8 +72,8 @@ between processes flows through Redis.
   `event.voice.wake` and start capture.
 - **STT** (Whisper-tiny / Vosk) transcribes the utterance.
 - **Intent engine**: rule-based matcher first (configurable command table from
-  DB); falls back to optional LLM only for open-ended input. Publishes
-  `event.voice.intent` with `{intent, slots, transcript, confidence}`.
+  DB). Unmatched input is logged as `unhandled` — **no LLM in current scope**.
+  Publishes `event.voice.intent` with `{intent, slots, transcript, confidence}`.
 - `core` maps intents → actions (create note, start meeting mode, center camera…).
 
 ## Concurrency model per process
@@ -104,8 +105,8 @@ config/defaults.yaml  ──seed──▶  SQLite `settings`  ◀──edit─�
                     + subscribes to `event.settings.changed` for hot-reload
 ```
 
-Tunables (PID gains, FPS, wake word, reminder interval, water goal, servo
-offsets) are DB rows so the dashboard is the single control surface. Defaults
+Tunables (PID gains, FPS, wake word, reminder interval, mood sample interval,
+servo offsets) are DB rows so the dashboard is the single control surface. Defaults
 ship in `config/defaults.yaml` for first boot / factory reset.
 
 ## Deployment (systemd)
@@ -136,7 +137,7 @@ deskbot.target             wants all of the above
 | `vision` crashes | servos hold last pos → arbiter falls back to idle after timeout; dashboard shows camera offline |
 | `hardware` crashes | core + dashboard keep working; systemd restarts; LEDs/OLED dark meanwhile |
 | Redis down | services retry with backoff; core serves cached DB data; no live updates |
-| WiFi down | everything local keeps working; calendar sync + optional LLM skipped |
+| WiFi down | everything local keeps working; calendar sync skipped |
 | Camera unplugged | vision reports error state, publishes no targets, arbiter idles |
 
 ## Why not the alternatives (quick)

@@ -43,10 +43,11 @@ Matches the PRD §9 list, fleshed out with bodies. All JSON. Errors:
 | POST | `/api/voice/command` | `{transcript}` → run intent pipeline (also used for text testing) |
 | GET | `/api/voice/bindings` / POST/PUT/DELETE | manage `command_bindings` |
 
-### Water
-| GET | `/api/water/today` | `{intake_ml, goal_ml, events[]}` |
-| GET | `/api/water/history?range=week|month` | series for graphs |
-| POST | `/api/water/log` | manual add |
+### Mood
+| GET | `/api/mood/current` | `{mood, confidence, at}` from `state:mood` |
+| GET | `/api/mood/today` | `{dominant, distribution:{happy:..,neutral:..}, timeline[]}` |
+| GET | `/api/mood/history?range=week|month` | series for the mood graph |
+| DELETE | `/api/mood/history` | clear stored mood data (privacy control) |
 
 ### Settings & hardware
 | GET | `/api/settings?ns=` | key/value list |
@@ -68,7 +69,7 @@ Server→client, JSON envelope `{topic, ts, data}`. Client subscribes with
 | `servo` | pan/tilt/owner | ~5 Hz |
 | `presence` | state changes | on change |
 | `led` | current state | on change |
-| `water` | new sip / today total | on change |
+| `mood` | current mood label + confidence | on change |
 | `voice` | wake/intent/transcript | on event |
 | `notes` | created/updated/deleted | on change |
 | `service` | heartbeat up/down | on change |
@@ -96,7 +97,7 @@ Naming: `cmd.*` = imperative (do this), `event.*` = something happened,
 | topic | payload | producer |
 |-------|---------|----------|
 | `event.presence` | `{state}` | vision |
-| `event.water.sip` | `{duration_s,container,est_ml,confidence}` | vision |
+| `event.mood` | `{mood,confidence}` | vision |
 | `event.touch` | `{gesture}` | hardware |
 | `event.voice.wake` | `{}` | voice |
 | `event.voice.intent` | `{intent,slots,transcript,confidence}` | voice |
@@ -109,6 +110,7 @@ Naming: `cmd.*` = imperative (do this), `event.*` = something happened,
 | `state:system` | cpu/ram/temp/storage/uptime |
 | `state:camera` | fps/latency/tracking_mode/last_face |
 | `state:presence` | present/away/unknown |
+| `state:mood` | current mood label + confidence |
 | `state:servo` | pan/tilt/owner |
 | `state:led` | current state |
 | `state:heartbeat:<service>` | epoch ts (watchdog reads) |

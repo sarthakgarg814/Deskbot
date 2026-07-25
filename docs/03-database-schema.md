@@ -22,10 +22,10 @@ Multi-user is Phase 3, but keep the table so foreign keys exist from day one.
 The single control surface (D7). Key/value with type + namespace.
 | col | type | notes |
 |-----|------|-------|
-| key | TEXT PK | e.g. `camera.fps`, `servo.pid.pan.kp`, `water.goal_ml` |
+| key | TEXT PK | e.g. `camera.fps`, `servo.pid.pan.kp`, `mood.sample_interval_s` |
 | value | TEXT | JSON-encoded |
 | type | TEXT | `int`/`float`/`bool`/`str`/`json` (for UI rendering) |
-| namespace | TEXT | `camera`/`voice`/`water`/`servo`/`led`/`system` |
+| namespace | TEXT | `camera`/`voice`/`mood`/`servo`/`led`/`system` |
 | updated_at | TEXT | |
 
 Change → `core` publishes `event.settings.changed` for hot-reload.
@@ -56,27 +56,28 @@ Cache of synced Google events (source of truth is Google).
 | status | TEXT | confirmed/tentative/cancelled |
 | synced_at | TEXT | |
 
-### `water_logs`
-One row per detected sip/drink event.
+### `mood_logs`
+One row per mood sample (every N seconds while a face is present). **Label only —
+no image is ever stored** (privacy). Sensitive data; user can disable/clear from
+the dashboard.
 | col | type | notes |
 |-----|------|-------|
 | id | INTEGER PK | |
 | user_id | FK | |
 | detected_at | TEXT | |
-| duration_s | REAL | drinking motion length |
-| container | TEXT | bottle/glass/cup |
-| est_intake_ml | INTEGER | from container size setting × heuristic |
+| mood | TEXT | `happy`/`neutral`/`sad`/`stressed`/`surprised` (final set TBD) |
 | confidence | REAL | model confidence |
+| present | BOOLEAN | face present at sample time |
 
-Daily/weekly/monthly rollups computed on read (or a `water_daily` summary table
-if perf needs it later).
+Daily/weekly/monthly rollups (dominant mood, distribution, timeline) computed on
+read, or a `mood_daily` summary table if perf needs it later.
 
 ### `voice_commands`
 | col | type | notes |
 |-----|------|-------|
 | id | INTEGER PK | |
 | transcript | TEXT | |
-| intent | TEXT | matched intent name (or `llm_fallback`) |
+| intent | TEXT | matched intent name (or `unhandled`) |
 | slots | TEXT | JSON |
 | confidence | REAL | |
 | handled | BOOLEAN | did an action run |
@@ -111,23 +112,24 @@ Presence transitions, meeting-mode on/off, reminders fired — the analytics fee
 | created_at | TEXT | |
 
 ### `ai_history`
-Record of any AI/LLM invocation (privacy-transparency: user can audit).
+Audit trail of any on-device AI inference (privacy-transparency: user can audit).
+No LLM in current scope; table stays so a future cloud LLM would be logged here too.
 | col | type | notes |
 |-----|------|-------|
 | id | INTEGER PK | |
-| kind | TEXT | `llm`/`stt`/`vision` |
-| prompt | TEXT | redactable |
-| response | TEXT | |
+| kind | TEXT | `stt`/`vision`/`mood` |
+| input | TEXT | redactable summary (e.g. transcript); never raw frames/audio |
+| output | TEXT | label / result |
 | model | TEXT | |
-| local | BOOLEAN | true if on-device |
-| tokens / latency_ms | INTEGER | |
+| local | BOOLEAN | true if on-device (always true for now) |
+| latency_ms | INTEGER | |
 | created_at | TEXT | |
 
 ## What lives where
 
 | Data | Store |
 |------|-------|
-| Notes, water logs, events, settings, bindings, activity, ai history | SQLite |
+| Notes, mood logs, events, settings, bindings, activity, ai history | SQLite |
 | Latest CPU/temp/RAM, presence, servo angles, camera fps, service heartbeats | Redis `state:*` (ephemeral) |
 | Frames, audio | never persisted (privacy) |
 | Models | `models/` on disk (downloaded, gitignored) |

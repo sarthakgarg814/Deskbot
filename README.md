@@ -24,7 +24,7 @@ and responds to voice — processing almost everything **on-device**.
 deskbot/
 ├── backend/            # Python — the four services + shared libs
 │   ├── core/           #   FastAPI app, WebSocket, scheduler, reminder engine
-│   ├── vision/         #   camera, face detection, presence, water detection
+│   ├── vision/         #   camera, face detection, presence, mood detection
 │   ├── hardware/       #   OLED, LED, servo (+ arbiter), touch, hw monitor
 │   ├── voice/          #   wake word, STT, intent engine
 │   ├── common/         #   bus (Redis), config, db models, schemas, logging
