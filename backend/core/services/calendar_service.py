@@ -18,12 +18,64 @@ log = logging.getLogger("deskbot.calendar")
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 
+REDIRECT_URI = "http://localhost"   # Google auto-allows loopback for Desktop clients
+
+
 def auth_status() -> dict:
     cfg = load_config()
     return {
         "has_client_secret": cfg.google_client_secret.exists(),
         "connected": cfg.google_token.exists(),
     }
+
+
+def save_client_secret(content: str) -> None:
+    import json
+
+    data = json.loads(content)                       # validate it's JSON
+    if not ("installed" in data or "web" in data):
+        raise ValueError("not a Google OAuth client JSON (expected 'installed'/'web')")
+    cfg = load_config()
+    cfg.google_client_secret.parent.mkdir(parents=True, exist_ok=True)
+    cfg.google_client_secret.write_text(content)
+
+
+def _flow():
+    from google_auth_oauthlib.flow import Flow
+
+    cfg = load_config()
+    return Flow.from_client_secrets_file(
+        str(cfg.google_client_secret), scopes=SCOPES, redirect_uri=REDIRECT_URI
+    )
+
+
+def auth_url() -> str:
+    url, _ = _flow().authorization_url(
+        prompt="consent", access_type="offline", include_granted_scopes="true"
+    )
+    return url
+
+
+def exchange(code_or_url: str) -> None:
+    """Exchange the pasted code (or the whole redirected URL) for a token."""
+    import re
+
+    code = code_or_url.strip()
+    m = re.search(r"[?&]code=([^&]+)", code)
+    if m:
+        from urllib.parse import unquote
+
+        code = unquote(m.group(1))
+    flow = _flow()
+    flow.fetch_token(code=code)
+    cfg = load_config()
+    cfg.google_token.write_text(flow.credentials.to_json())
+
+
+def disconnect() -> None:
+    cfg = load_config()
+    if cfg.google_token.exists():
+        cfg.google_token.unlink()
 
 
 def _credentials():

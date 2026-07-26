@@ -99,6 +99,12 @@ export const api = {
   calendarToday: () => req<CalEvent[]>("/calendar/today"),
   calendarUpcoming: () => req<CalEvent[]>("/calendar/upcoming"),
   calendarSync: () => req<{ synced: number; events: CalEvent[] }>("/calendar/sync", { method: "POST" }),
+  calendarSaveSecret: (content: string) =>
+    req<{ ok: boolean }>("/calendar/client-secret", { method: "POST", body: JSON.stringify({ content }) }),
+  calendarAuthUrl: () => req<{ url: string }>("/calendar/auth-url"),
+  calendarExchange: (code: string) =>
+    req<{ ok: boolean; synced: number }>("/calendar/exchange", { method: "POST", body: JSON.stringify({ code }) }),
+  calendarDisconnect: () => req<{ ok: boolean }>("/calendar/disconnect", { method: "POST" }),
 
   waterStatus: () => req<WaterStatus>("/water/status"),
   waterDrank: () => req<WaterStatus>("/water/drank", { method: "POST" }),

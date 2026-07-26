@@ -135,14 +135,15 @@ dashboard toast. "I drank water" / the interval both reset the timer.
 | `calendar.sync_min` | 15 | sync interval |
 | `calendar.reminder_min` | 5 | fire a meeting alert this many minutes before |
 
-**Connecting (free, no billing):** Google Cloud → enable Calendar API → OAuth
-consent (add yourself as test user, set *In production* to avoid 7-day token
-expiry) → create a **Desktop-app** OAuth client → save JSON to
-`config/google/client_secret.json`. Then on your **laptop** run
-`python scripts/google-auth.py` (browser auth → `config/google/token.json`),
-enable `calendar.enabled`, `./scripts/deploy-to-pi.sh` (copies `config/google/`
-to the Pi), and restart core. A meeting within `reminder_min` fires the buzzer +
-an OLED "MEETING" screen + a dashboard toast.
+**Connecting (free, no billing) — all from the dashboard:** Google Cloud → enable
+Calendar API → OAuth consent (add yourself as a test user, set *In production* to
+avoid 7-day token expiry) → create a **Desktop-app** OAuth client → download JSON.
+Then on the **Calendar page**: (1) upload the client-secret JSON, (2) click the
+authorization link + approve, (3) paste back the redirected URL/code. The token is
+saved on the Pi (`config/google/`, gitignored + rsync-excluded so redeploys don't
+touch it) and calendar auto-enables. `scripts/google-auth.py` remains as a
+laptop-based fallback. A meeting within `reminder_min` fires the buzzer + an OLED
+"MEETING" screen + a dashboard toast.
 
 ### runtime (config/defaults.yaml or local.yaml)
 `hardware_backend` (mock\|real), `bus_backend` (inprocess\|redis), `redis_url`,

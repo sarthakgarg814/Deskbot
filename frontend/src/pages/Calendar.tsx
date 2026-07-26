@@ -1,6 +1,105 @@
 import { useEffect, useState } from "react";
 import { api, type CalAuth, type CalEvent } from "../lib/api";
 
+function Connect({ auth, onDone }: { auth: CalAuth; onDone: () => void }) {
+  const [hasSecret, setHasSecret] = useState(auth.has_client_secret);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const uploadSecret = async (file: File) => {
+    setErr(null);
+    try {
+      await api.calendarSaveSecret(await file.text());
+      setHasSecret(true);
+    } catch (e) {
+      setErr(`${e}`);
+    }
+  };
+
+  const startAuth = async () => {
+    setErr(null);
+    try {
+      setAuthUrl((await api.calendarAuthUrl()).url);
+    } catch (e) {
+      setErr(`${e}`);
+    }
+  };
+
+  const finish = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      await api.calendarExchange(code.trim());
+      onDone();
+    } catch (e) {
+      setErr(`${e}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const step = "block text-xs font-semibold text-neutral-500 mb-1";
+  return (
+    <div className="max-w-xl">
+      <h1 className="text-lg font-semibold mb-1">Connect Google Calendar</h1>
+      <p className="text-sm text-neutral-500 mb-5">Read-only, free. All from here — no laptop scripts.</p>
+
+      <div className="space-y-5">
+        {/* 1 */}
+        <div className="rounded-lg border border-neutral-800 p-4">
+          <span className={step}>1 · Upload OAuth client secret</span>
+          <p className="text-xs text-neutral-500 mb-2">
+            Google Cloud → Credentials → create an <b>OAuth Desktop-app</b> client → Download JSON.
+          </p>
+          <input type="file" accept=".json,application/json"
+                 onChange={(e) => e.target.files?.[0] && uploadSecret(e.target.files[0])}
+                 className="text-sm text-neutral-400" />
+          {hasSecret && <span className="ml-2 text-xs text-led-working">✓ saved</span>}
+        </div>
+
+        {/* 2 */}
+        <div className={`rounded-lg border border-neutral-800 p-4 ${hasSecret ? "" : "opacity-40 pointer-events-none"}`}>
+          <span className={step}>2 · Authorize</span>
+          <button onClick={startAuth}
+                  className="rounded-md bg-led-idle px-4 py-2 text-sm font-medium text-white">
+            Get authorization link
+          </button>
+          {authUrl && (
+            <div className="mt-3 text-xs text-neutral-400 space-y-2">
+              <a href={authUrl} target="_blank" rel="noreferrer" className="text-led-idle underline break-all">
+                Open Google authorization →
+              </a>
+              <p>
+                Approve access. Your browser then tries to open a <b>localhost</b> page that
+                won't load — that's expected. Copy the whole address-bar URL (or just the
+                <code> code=… </code> part) and paste it below.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* 3 */}
+        <div className={`rounded-lg border border-neutral-800 p-4 ${authUrl ? "" : "opacity-40 pointer-events-none"}`}>
+          <span className={step}>3 · Paste the code</span>
+          <div className="flex gap-2">
+            <input value={code} onChange={(e) => setCode(e.target.value)}
+                   placeholder="paste the redirected URL or code"
+                   className="flex-1 rounded-md bg-neutral-900 border border-neutral-800 px-3 py-2 text-sm outline-none focus:border-neutral-600" />
+            <button onClick={finish} disabled={busy || !code.trim()}
+                    className="rounded-md bg-led-working px-4 py-2 text-sm font-medium text-neutral-950 disabled:opacity-40">
+              {busy ? "Connecting…" : "Connect"}
+            </button>
+          </div>
+        </div>
+
+        {err && <div className="text-sm text-led-error">{err}</div>}
+      </div>
+    </div>
+  );
+}
+
 function when(ev: CalEvent): string {
   const start = new Date(ev.start);
   if (ev.all_day) return "all day";
@@ -52,25 +151,7 @@ export default function Calendar() {
   };
 
   if (auth && !auth.connected) {
-    return (
-      <div className="max-w-xl">
-        <h1 className="text-lg font-semibold mb-3">Calendar</h1>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-5 text-sm text-neutral-300 space-y-2">
-          <p className="font-medium text-neutral-100">Not connected to Google Calendar.</p>
-          <p className="text-neutral-400">
-            {auth.has_client_secret
-              ? "Client secret found. Run the one-time auth on your laptop:"
-              : "Set it up (free, ~10 min):"}
-          </p>
-          <ol className="list-decimal ml-5 space-y-1 text-neutral-400">
-            <li>Google Cloud → enable Calendar API → OAuth consent (add yourself as test user, set "In production")</li>
-            <li>Create an OAuth <b>Desktop app</b> client → download JSON → save as <code>config/google/client_secret.json</code></li>
-            <li>On your laptop: <code>python scripts/google-auth.py</code> (opens a browser)</li>
-            <li>Enable calendar in Settings, then <code>./scripts/deploy-to-pi.sh</code> + restart core</li>
-          </ol>
-        </div>
-      </div>
-    );
+    return <Connect auth={auth} onDone={load} />;
   }
 
   const next = upcoming.find((e) => new Date(e.start).getTime() > Date.now());
@@ -79,10 +160,16 @@ export default function Calendar() {
     <div className="max-w-xl">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold">Calendar</h1>
-        <button onClick={sync} disabled={syncing}
-                className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm hover:bg-neutral-700 disabled:opacity-40">
-          {syncing ? "syncing…" : "sync now"}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={sync} disabled={syncing}
+                  className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm hover:bg-neutral-700 disabled:opacity-40">
+            {syncing ? "syncing…" : "sync now"}
+          </button>
+          <button onClick={async () => { await api.calendarDisconnect(); load(); }}
+                  className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm text-neutral-400 hover:text-led-error">
+            disconnect
+          </button>
+        </div>
       </div>
 
       {next && (
