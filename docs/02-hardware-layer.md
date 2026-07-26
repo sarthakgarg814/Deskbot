@@ -56,7 +56,7 @@ class Camera(Protocol):                    # used by the vision process
 
 | Device | Library | Notes / risk |
 |--------|---------|--------------|
-| Servos (pan/tilt) | `pigpio` via `gpiozero` (pin factory) **or** `PCA9685` I2C | pigpio needs `pigpiod` daemon; gives hardware-timed PWM (no jitter). PCA9685 offloads timing entirely — recommended if you have the board. **Open Q2.** |
+| Servos (pan/tilt) | **`PCA9685` I2C (recommended)** or `gpiozero` on the `lgpio` backend | **pigpio is removed from Raspberry Pi OS Trixie (Debian 13)** — D6 superseded. PCA9685 does jitter-free hardware PWM over I2C and offloads the CPU. lgpio (Trixie default) is the no-extra-hardware fallback but software PWM can jitter. **Open Q2 → confirm which board you have.** |
 | OLED 0.96" I2C | `luma.oled` (SSD1306) | I2C addr usually `0x3C`. Render off-thread, push framebuffer. |
 | NeoPixel WS2812B | `rpi_ws281x` (or `adafruit-circuitpython-neopixel`) | Needs root **or** SPI/DMA. Drives on GPIO18 (PWM0) typically. **Open Q3** — decides if `hardware` runs as root. |
 | Touch sensor | `gpiozero` Button / capacitive breakout | Debounce + press-duration classification for tap/double/long/vlong. |
@@ -105,10 +105,12 @@ loop @ ~25 Hz:
 - `mock.camera` replays a sample video or a synthetic moving face so vision +
   arbiter can be exercised end-to-end without a Pi camera.
 
-## Permissions / system prep checklist (Pi)
+## Permissions / system prep checklist (Pi — Trixie / Debian 13, 64-bit Lite)
 
-- `sudo systemctl enable pigpiod`
-- Enable I2C + SPI in `raspi-config`
+- `sudo apt install -y git python3-venv python3-lgpio i2c-tools`
+  (NO `pigpio` — removed in Trixie; lgpio is the native backend)
+- Enable I2C + SPI + camera in `raspi-config`
 - Add user to `gpio`, `i2c`, `spi`, `video` groups
+- Servos: PCA9685 shows up on `i2cdetect -y 1` (usually `0x40`); or use lgpio
 - NeoPixel: either run `hardware` as root or wire on SPI (decide Q3)
-- `avahi-daemon` for `deskbot.local`
+- `avahi-daemon` for `deskbot.local` (present by default on Pi OS)

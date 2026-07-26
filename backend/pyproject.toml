@@ -14,14 +14,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Installed ONLY on the Raspberry Pi (real hardware backend). Kept out of the
-# base deps so the backend installs and runs on a laptop against mocks.
+# Installed ONLY on the Raspberry Pi for the REAL hardware backend (Milestone 2+).
+# Milestone 1 runs on mock hardware and needs NONE of these — install the base
+# deps only. NOTE: pigpio was removed in Raspberry Pi OS Trixie; we use lgpio
+# (Trixie's native backend) and/or a PCA9685 I2C servo board instead.
+# picamera2 / rpi_ws281x are best installed via apt (python3-picamera2,
+# python3-rpi-ws281x) rather than pip on Trixie.
 pi = [
     "gpiozero>=2.0",
-    "pigpio>=1.78",
+    "lgpio>=0.2",
     "luma.oled>=3.12",
-    "rpi_ws281x>=5.0",
-    "picamera2>=0.3",
+    "adafruit-circuitpython-pca9685>=3.4",  # optional: PCA9685 servo board
 ]
 dev = [
     "pytest>=8.0",
