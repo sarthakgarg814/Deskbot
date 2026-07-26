@@ -46,11 +46,11 @@ class PiCamera2Source:
         log.info("picamera2 started @ %dx%d%s", width, height, f" (cap {fps}fps)" if fps else "")
 
     def frames(self) -> Iterator[np.ndarray]:
-        import cv2
-
         while True:
-            rgb = self._cam.capture_array()          # RGB
-            yield cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            # picamera2's "RGB888" delivers a BGR-ordered array (a known quirk) —
+            # already what OpenCV/imencode expect, so NO conversion. Converting
+            # here double-swaps R/B and makes the preview come out purple.
+            yield self._cam.capture_array()
 
     def close(self) -> None:
         try:
