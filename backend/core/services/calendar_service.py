@@ -6,7 +6,12 @@ ISO+Z so the browser renders local time.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timedelta, timezone
+
+# Google often returns the granted scope in a slightly different form than
+# requested; without this, oauthlib raises "Scope has changed" on token exchange.
+os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -50,9 +55,7 @@ def _flow():
 
 
 def auth_url() -> str:
-    url, _ = _flow().authorization_url(
-        prompt="consent", access_type="offline", include_granted_scopes="true"
-    )
+    url, _ = _flow().authorization_url(prompt="consent", access_type="offline")
     return url
 
 

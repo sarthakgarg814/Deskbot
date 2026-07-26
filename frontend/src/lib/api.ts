@@ -60,7 +60,16 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const j = await res.json();
+      detail = j.detail ?? j.error?.message ?? detail;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(`${res.status} · ${detail}`);
+  }
   if (res.status === 204) return undefined as T;
   return res.json();
 }
