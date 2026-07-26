@@ -42,12 +42,12 @@ settings:
   - { key: servo.pan.offset_deg,   value: 0,         type: int,   namespace: servo }
   - { key: servo.tilt.offset_deg,  value: 0,         type: int,   namespace: servo }
   - { key: servo.limit_deg,        value: 80,        type: int,   namespace: servo }  # ± max angle
-  - { key: servo.max_speed,        value: 90,        type: int,   namespace: servo }  # deg/sec
-  - { key: servo.deadzone,         value: 0.06,      type: float, namespace: servo }  # ignore tiny error
-  - { key: servo.pid.pan.kp,       value: 40.0,      type: float, namespace: servo }
+  - { key: servo.max_speed,        value: 120,       type: int,   namespace: servo }  # deg/sec
+  - { key: servo.deadzone,         value: 0.04,      type: float, namespace: servo }  # ignore tiny error
+  - { key: servo.pid.pan.kp,       value: 100.0,     type: float, namespace: servo }  # deg/sec at |error|=1
   - { key: servo.pid.pan.ki,       value: 0.0,       type: float, namespace: servo }
   - { key: servo.pid.pan.kd,       value: 0.0,       type: float, namespace: servo }
-  - { key: servo.pid.tilt.kp,      value: 40.0,      type: float, namespace: servo }
+  - { key: servo.pid.tilt.kp,      value: 100.0,     type: float, namespace: servo }
   - { key: servo.pid.tilt.ki,      value: 0.0,       type: float, namespace: servo }
   - { key: servo.pid.tilt.kd,      value: 0.0,       type: float, namespace: servo }
 
