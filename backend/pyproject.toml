@@ -31,6 +31,13 @@ dev = [
     "httpx>=0.27",
     "ruff>=0.4",
 ]
+# Vision deps for LAPTOP/dev use (OpenCV YuNet detection, D9). On the Pi, install
+# system packages instead — `sudo apt install python3-opencv python3-picamera2` —
+# and run vision with a --system-site-packages venv (picamera2 is Pi-system-only).
+vision = [
+    "opencv-python-headless>=4.9",
+    "numpy>=1.24",
+]
 
 [tool.setuptools]
 packages = ["common", "core", "hardware"]
