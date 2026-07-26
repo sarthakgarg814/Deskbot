@@ -57,36 +57,46 @@ def sync(s: Session) -> int:
 
     svc = build("calendar", "v3", credentials=creds, cache_discovery=False)
     now = datetime.now(timezone.utc)
-    result = svc.events().list(
-        calendarId="primary", timeMin=now.isoformat(),
-        timeMax=(now + timedelta(days=7)).isoformat(),
-        singleEvents=True, orderBy="startTime", maxResults=50,
-    ).execute()
-    items = result.get("items", [])
-
     now_naive = now.replace(tzinfo=None)
+    time_min, time_max = now.isoformat(), (now + timedelta(days=7)).isoformat()
+
+    # all calendars this account can see + has selected (primary + shared/added)
+    cals = svc.calendarList().list().execute().get("items", [])
+    cal_ids = [c["id"] for c in cals if c.get("selected") or c.get("primary")] or ["primary"]
+
     seen: set[str] = set()
-    for it in items:
-        ext = it["id"]
-        seen.add(ext)
-        row = s.scalar(select(CalendarEvent).where(CalendarEvent.external_id == ext))
-        if row is None:
-            row = CalendarEvent(external_id=ext)
-            s.add(row)
-        row.title = it.get("summary", "(no title)")
-        row.start_utc = _parse(it["start"].get("dateTime") or it["start"].get("date"))
-        row.end_utc = _parse(it["end"].get("dateTime") or it["end"].get("date"))
-        row.location = it.get("location", "") or ""
-        row.all_day = "date" in it["start"]
-        row.synced_at = now_naive
+    total = 0
+    for cid in cal_ids:
+        try:
+            result = svc.events().list(
+                calendarId=cid, timeMin=time_min, timeMax=time_max,
+                singleEvents=True, orderBy="startTime", maxResults=50,
+            ).execute()
+        except Exception as e:  # noqa: BLE001 — a single bad calendar shouldn't stop the rest
+            log.warning("skip calendar %s: %s", cid, e)
+            continue
+        for it in result.get("items", []):
+            ext = f"{cid}::{it['id']}"          # unique across calendars
+            seen.add(ext)
+            row = s.scalar(select(CalendarEvent).where(CalendarEvent.external_id == ext))
+            if row is None:
+                row = CalendarEvent(external_id=ext)
+                s.add(row)
+            row.title = it.get("summary", "(no title)")
+            row.start_utc = _parse(it["start"].get("dateTime") or it["start"].get("date"))
+            row.end_utc = _parse(it["end"].get("dateTime") or it["end"].get("date"))
+            row.location = it.get("location", "") or ""
+            row.all_day = "date" in it["start"]
+            row.synced_at = now_naive
+            total += 1
 
     # drop stale/cancelled events that already ended
     for row in s.scalars(select(CalendarEvent)).all():
         if row.external_id not in seen and row.end_utc < now_naive:
             s.delete(row)
     s.flush()
-    log.info("calendar synced: %d events", len(items))
-    return len(items)
+    log.info("calendar synced: %d events across %d calendars", total, len(cal_ids))
+    return total
 
 
 def _out(r: CalendarEvent) -> dict:
