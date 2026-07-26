@@ -22,13 +22,18 @@ class Scheduler:
         self._sched = AsyncIOScheduler()
 
     def start(self) -> None:
+        from common.db import session_scope
+        from core.services.settings_service import get_value
+
+        with session_scope() as s:
+            sync_min = max(1, int(get_value(s, "calendar.sync_min", 15)))
+
         self._sched.add_job(self._sample_system, "interval", seconds=1, id="system_sample")
         self._sched.add_job(self._water_check, "interval", seconds=30, id="water_check")
-        self._sched.add_job(self._calendar_sync, "interval", minutes=5, id="calendar_sync",
-                            next_run_time=None)
+        self._sched.add_job(self._calendar_sync, "interval", minutes=sync_min, id="calendar_sync")
         self._sched.add_job(self._meeting_check, "interval", seconds=45, id="meeting_check")
         self._sched.start()
-        log.info("scheduler started (system 1Hz, water 30s, calendar 5m, meetings 45s)")
+        log.info("scheduler started (system 1Hz, water 30s, calendar %dm, meetings 45s)", sync_min)
 
     def shutdown(self) -> None:
         if self._sched.running:
