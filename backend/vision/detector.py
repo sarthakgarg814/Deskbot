@@ -40,44 +40,65 @@ class FaceDetector(Protocol):
 
 
 class YuNetDetector:
-    def __init__(self, model_path: Path = YUNET_MODEL, score_threshold: float = 0.7) -> None:
+    def __init__(
+        self,
+        model_path: Path = YUNET_MODEL,
+        score_threshold: float = 0.7,
+        detect_width: int = 320,
+    ) -> None:
         import cv2
 
         if not model_path.exists():
             raise FileNotFoundError(
                 f"YuNet model not found at {model_path}. Run scripts/fetch-models.sh."
             )
-        # input size is set per-frame in detect(); start with a placeholder
+        # Run detection at `detect_width` (downscaled) for speed. Face centering
+        # uses normalized coords, so the smaller input costs ~no tracking accuracy
+        # while being much faster on the Pi's CPU. 0 disables downscaling.
+        self._detect_width = detect_width
         self._det = cv2.FaceDetectorYN.create(
             str(model_path), "", (320, 320), score_threshold, 0.3, 5000
         )
         self._size: tuple[int, int] | None = None
-        log.info("YuNet loaded (score_threshold=%.2f)", score_threshold)
+        log.info(
+            "YuNet loaded (score_threshold=%.2f, detect_width=%d)",
+            score_threshold, detect_width,
+        )
 
     def detect(self, frame: np.ndarray) -> list[Face]:
-        h, w = frame.shape[:2]
-        if self._size != (w, h):
-            self._det.setInputSize((w, h))
-            self._size = (w, h)
+        import cv2
 
-        _, faces = self._det.detect(frame)
+        H, W = frame.shape[:2]
+        if self._detect_width and W > self._detect_width:
+            scale = self._detect_width / W
+            small = cv2.resize(frame, (self._detect_width, max(1, round(H * scale))))
+        else:
+            scale, small = 1.0, frame
+
+        sh, sw = small.shape[:2]
+        if self._size != (sw, sh):
+            self._det.setInputSize((sw, sh))
+            self._size = (sw, sh)
+
+        _, faces = self._det.detect(small)
         if faces is None:
             return []
 
         out: list[Face] = []
         for f in faces:
-            fx, fy, fw, fh = (int(v) for v in f[:4])
+            fx, fy, fw, fh = (float(v) for v in f[:4])  # detection-frame coords
             score = float(f[-1])
-            cx = (fx + fw / 2) / w
-            cy = (fy + fh / 2) / h
+            cx = (fx + fw / 2) / sw          # normalized — same in full or small
+            cy = (fy + fh / 2) / sh
             out.append(
                 Face(
-                    x=fx, y=fy, w=fw, h=fh, score=score,
-                    cx=cx, cy=cy,
+                    # bbox scaled back to the ORIGINAL frame (for preview/overlay)
+                    x=int(fx / scale), y=int(fy / scale),
+                    w=int(fw / scale), h=int(fh / scale),
+                    score=score, cx=cx, cy=cy,
                     err_x=(cx - 0.5) * 2,   # -1 (left) … +1 (right)
                     err_y=(cy - 0.5) * 2,   # -1 (top)  … +1 (bottom)
                 )
             )
-        # largest face first (closest / primary subject)
-        out.sort(key=lambda f: f.w * f.h, reverse=True)
+        out.sort(key=lambda f: f.w * f.h, reverse=True)  # largest/closest first
         return out
