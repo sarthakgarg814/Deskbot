@@ -1,8 +1,9 @@
 from fastapi import APIRouter
 
-from . import calendar, camera, hardware, notes, settings, system, water, wifi
+from . import auth, calendar, camera, hardware, notes, settings, system, water, wifi
 
 api_router = APIRouter(prefix="/api")
+api_router.include_router(auth.router)
 api_router.include_router(system.router)
 api_router.include_router(notes.router)
 api_router.include_router(settings.router)

@@ -1,6 +1,7 @@
 // WebSocket client with auto-reconnect. Emits envelopes {topic, ts, data} from
 // the backend hub (docs/04-api-contract.md#websocket-ws).
 import { useEffect, useRef, useState } from "react";
+import { getToken } from "./auth";
 
 export interface Envelope<T = unknown> {
   topic: string;
@@ -10,7 +11,8 @@ export interface Envelope<T = unknown> {
 
 function wsUrl(): string {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  return `${proto}://${location.host}/ws`;
+  const token = getToken();
+  return `${proto}://${location.host}/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
 }
 
 /** Subscribe to a single topic; returns the latest payload for that topic. */

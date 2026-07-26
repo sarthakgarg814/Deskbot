@@ -33,6 +33,7 @@ rsync -az --delete --progress --timeout=60 \
   --exclude 'models/' \
   --exclude 'config/local.yaml' \
   --exclude 'config/google/' \
+  --exclude 'config/.session_secret' \
   "$REPO_DIR/" "$PI_HOST:~/$DEST/"
 
 cat <<EOF

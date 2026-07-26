@@ -1,5 +1,6 @@
 // Thin REST client. Same-origin in prod (backend serves the bundle); the Vite
 // dev server proxies /api -> :8000.
+import { getToken, onUnauthorized } from "./auth";
 
 export interface SystemStatus {
   cpu_percent: number;
@@ -56,10 +57,19 @@ export interface CameraStatus {
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
   const res = await fetch(`/api${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
   });
+  if (res.status === 401 && path !== "/auth/login") {
+    onUnauthorized();
+    throw new Error("401 · session expired");
+  }
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -75,6 +85,11 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  authStatus: () => req<{ is_default: boolean }>("/auth/status"),
+  login: (password: string) => req<{ token: string }>("/auth/login", { method: "POST", body: JSON.stringify({ password }) }),
+  changePassword: (old_password: string, new_password: string) =>
+    req<{ ok: boolean }>("/auth/change", { method: "POST", body: JSON.stringify({ old_password, new_password }) }),
+
   system: () => req<SystemStatus>("/system"),
 
   listNotes: (q = "") => req<Note[]>(`/notes${q ? `?q=${encodeURIComponent(q)}` : ""}`),

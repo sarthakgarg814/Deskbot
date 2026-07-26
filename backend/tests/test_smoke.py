@@ -16,6 +16,9 @@ def client(tmp_path, monkeypatch):
     cfg_mod.load_config.cache_clear()
     monkeypatch.setattr(cfg_mod, "CONFIG_PATH", cfg_mod.CONFIG_PATH)  # keep defaults.yaml
     with TestClient(create_app()) as c:
+        # authenticate with the default password so guarded /api/* calls pass
+        tok = c.post("/api/auth/login", json={"password": "deskbot"}).json()["token"]
+        c.headers["Authorization"] = f"Bearer {tok}"
         yield c
 
 

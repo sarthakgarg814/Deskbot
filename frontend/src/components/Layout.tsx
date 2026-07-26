@@ -12,6 +12,7 @@ const NAV = [
   { to: "/hardware", label: "Hardware" },
   { to: "/wifi", label: "WiFi" },
   { to: "/settings", label: "Settings" },
+  { to: "/account", label: "Account" },
 ];
 
 export default function Layout() {

@@ -11,10 +11,15 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+from core.services import auth_service
+
+# /api paths reachable without a token (login + the default-pw hint + health)
+PUBLIC_PATHS = {"/api/health", "/api/auth/login", "/api/auth/status"}
 
 from common.bus import make_bus
 from common.config import load_config
@@ -123,6 +128,16 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def require_auth(request: Request, call_next):
+        p = request.url.path
+        if p.startswith("/api/") and p not in PUBLIC_PATHS:
+            hdr = request.headers.get("authorization", "")
+            token = hdr[7:] if hdr[:7].lower() == "bearer " else request.cookies.get("deskbot_token")
+            if not auth_service.verify_token(token):
+                return JSONResponse(status_code=401, content={"detail": "unauthorized"})
+        return await call_next(request)
+
     app.include_router(api_router)
 
     @app.get("/api/health")
@@ -131,6 +146,9 @@ def create_app() -> FastAPI:
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket):
+        if not auth_service.verify_token(ws.query_params.get("token")):
+            await ws.close(code=1008)   # policy violation
+            return
         hub: WsHub = ws.app.state.ws_hub
         await hub.connect(ws)
         try:
