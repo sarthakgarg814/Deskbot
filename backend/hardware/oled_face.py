@@ -30,6 +30,37 @@ def _box(cx: int, cy: int, w: int, h: int):
     return (cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2)
 
 
+def draw_water(draw, W: int, H: int, t: float) -> None:
+    """'Drink water' reminder animation: a glass filling with a wavy surface and a
+    droplet plopping in, next to the text. `t` = seconds (drives the animation)."""
+    import math
+
+    draw.rectangle((0, 0, W, H), fill="black")
+    draw.text((6, 12), "TIME TO", fill="white")
+    draw.text((6, 30), "DRINK!", fill="white")
+
+    # glass on the right (tapered): top wider than bottom
+    gx, gtop, gbot = W - 34, 10, H - 8
+    gw_top, gw_bot = 30, 22
+    tl, tr = gx - gw_top // 2, gx + gw_top // 2
+    bl, br = gx - gw_bot // 2, gx + gw_bot // 2
+    draw.line((tl, gtop, bl, gbot), fill="white", width=2)
+    draw.line((tr, gtop, br, gbot), fill="white", width=2)
+    draw.line((bl, gbot, br, gbot), fill="white", width=2)
+
+    # water level rises over a 2s cycle, with a small wave
+    phase = (t % 2.0) / 2.0
+    level = gbot - int(phase * (gbot - gtop - 8))
+    for x in range(bl, br + 1):
+        wave = int(2 * math.sin((x - bl) / 3.0 + t * 4))
+        draw.line((x, level + wave, x, gbot - 1), fill="white")
+
+    # droplet falls from above into the glass, looping every 1s
+    dphase = (t % 1.0)
+    dy = gtop - 8 + int(dphase * (level - (gtop - 8)))
+    draw.ellipse((gx - 3, dy - 3, gx + 3, dy + 3), fill="white")
+
+
 def draw_face(draw, W: int, H: int, emotion: str = "neutral",
               gaze_x: float = 0.0, gaze_y: float = 0.0, blink: bool = False) -> None:
     draw.rectangle((0, 0, W, H), fill="black")

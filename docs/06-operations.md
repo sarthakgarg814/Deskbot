@@ -13,7 +13,7 @@ coordinated over **Redis**:
 |---------|-------------|------|-----------|
 | **core** | `deskbot-core` | FastAPI + WebSocket, SQLite (sole writer), scheduler, serves the dashboard | REST/WS to browser; publishes `cmd.*`, reads `state:*` |
 | **vision** | `deskbot-vision` | Pi camera, YuNet face detection, presence, MJPEG preview | publishes `cmd.servo.target`, `state:camera`, `presence` |
-| **hardware** | `deskbot-hardware` | the servos + OLED (sole GPIO/I2C owner) — arbiter + hardware PWM + status screen | subscribes `cmd.servo.*`, publishes `state:servo`, `state:oled` |
+| **hardware** | `deskbot-hardware` | the servos + OLED + buzzer (sole GPIO/I2C owner) — arbiter, hardware PWM, animated eyes | subscribes `cmd.servo.*` / `cmd.buzzer.beep`, publishes `state:servo`, `state:oled` |
 | redis | `redis-server` | the bus + state cache | — |
 
 Design rules that matter operationally:
@@ -107,6 +107,19 @@ Three layers, lowest to highest precedence:
 |-----|---------|--------|
 | `oled.mode` | eyes | `eyes` = animated robot eyes; `status` = text (time/CPU/temp/tracking/servo) |
 | `oled.emotion` | auto | `auto` = happy when a face is present, sleepy when away (and mood-driven later); or force `happy`/`neutral`/`sad`/`angry`/`surprised`/`sleepy` |
+
+### water (core reminder engine)
+| Key | Default | Effect |
+|-----|---------|--------|
+| `water.reminder_enabled` | true | timed hydration nudge |
+| `water.interval_min` | 60 | remind every N minutes |
+| `water.only_when_present` | true | **only fire when a face is present** (the whole point) |
+| `water.buzzer_enabled` | true | beep the buzzer when a reminder fires |
+| `water.daily_goal` | 8 | glasses/day, for the dashboard progress bar |
+
+A reminder fires the buzzer (`cmd.buzzer.beep`), a **"drink water" animation on
+the OLED** (`state:oled.alert`, ~8 s, over the eyes), a yellow LED, and a
+dashboard toast. "I drank water" / the interval both reset the timer.
 
 ### runtime (config/defaults.yaml or local.yaml)
 `hardware_backend` (mock\|real), `bus_backend` (inprocess\|redis), `redis_url`,

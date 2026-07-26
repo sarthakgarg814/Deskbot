@@ -13,6 +13,7 @@ runtime:
   preview_port: 8090            # vision MJPEG preview port (only streams when enabled)
   servo_pan_pin: 12             # BCM GPIO for the pan servo signal
   servo_tilt_pin: 13            # BCM GPIO for the tilt servo signal
+  buzzer_pin: 16                # BCM GPIO for the reminder buzzer (active buzzer)
   db_path: deskbot.db           # relative to repo root
   host: 0.0.0.0
   port: 8000
@@ -64,6 +65,13 @@ settings:
   # --- oled (animated robot eyes on the SSD1306) ---
   - { key: oled.mode,              value: "eyes",    type: str,   namespace: oled }  # eyes | status
   - { key: oled.emotion,           value: "auto",    type: str,   namespace: oled }  # auto|happy|neutral|sad|angry|surprised|sleepy
+
+  # --- water reminder (presence-gated timed nudge; buzzer + OLED animation) ---
+  - { key: water.reminder_enabled, value: true,      type: bool,  namespace: water }
+  - { key: water.interval_min,     value: 60,        type: int,   namespace: water }  # remind every N min
+  - { key: water.only_when_present, value: true,     type: bool,  namespace: water }  # only if you're in front
+  - { key: water.buzzer_enabled,   value: true,      type: bool,  namespace: water }
+  - { key: water.daily_goal,       value: 8,         type: int,   namespace: water }  # glasses/day
 
   # --- mood ---
   - { key: mood.enabled,           value: true,      type: bool,  namespace: mood }

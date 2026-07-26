@@ -54,5 +54,10 @@ class OledDisplay(Protocol):
 
 
 @runtime_checkable
+class Buzzer(Protocol):
+    def beep(self, count: int = 1, on: float = 0.15, off: float = 0.1) -> None: ...
+
+
+@runtime_checkable
 class HardwareMonitor(Protocol):
     def sample(self) -> SystemStats: ...

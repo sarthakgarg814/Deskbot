@@ -8,6 +8,7 @@ import Settings from "./pages/Settings";
 import Hardware from "./pages/Hardware";
 import Camera from "./pages/Camera";
 import Wifi from "./pages/Wifi";
+import Water from "./pages/Water";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -17,6 +18,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "camera", element: <Camera /> },
+      { path: "water", element: <Water /> },
       { path: "notes", element: <Notes /> },
       { path: "settings", element: <Settings /> },
       { path: "hardware", element: <Hardware /> },

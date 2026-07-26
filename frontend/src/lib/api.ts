@@ -95,6 +95,10 @@ export const api = {
   cameraStatus: () => req<CameraStatus>("/camera/status"),
   cameraCenter: () => req<{ ok: boolean }>("/camera/center", { method: "POST" }),
 
+  waterStatus: () => req<WaterStatus>("/water/status"),
+  waterDrank: () => req<WaterStatus>("/water/drank", { method: "POST" }),
+  waterTest: () => req<{ ok: boolean }>("/water/test", { method: "POST" }),
+
   wifiStatus: () => req<WifiStatus>("/wifi/status"),
   wifiScan: () => req<{ available: boolean; networks: WifiNetwork[] }>("/wifi/scan"),
   wifiConnect: (ssid: string, password: string) =>
@@ -103,6 +107,17 @@ export const api = {
       body: JSON.stringify({ ssid, password }),
     }),
 };
+
+export interface WaterStatus {
+  reminder_enabled: boolean;
+  interval_min: number;
+  only_when_present: boolean;
+  buzzer_enabled: boolean;
+  daily_goal: number;
+  count_today: number;
+  last_event: string | null;
+  seconds_until_next: number;
+}
 
 export interface WifiStatus {
   available: boolean;

@@ -34,6 +34,7 @@ class RuntimeConfig:
     # servo GPIO wiring (BCM pin numbers) — signal wires
     servo_pan_pin: int = 12
     servo_tilt_pin: int = 13
+    buzzer_pin: int = 16
     db_path: Path = REPO_ROOT / "deskbot.db"
     host: str = "0.0.0.0"
     port: int = 8000
@@ -67,6 +68,7 @@ def load_config(path: Path | None = None) -> RuntimeConfig:
         vision_detect_width=int(rt.get("vision_detect_width", 256)),
         servo_pan_pin=int(rt.get("servo_pan_pin", 12)),
         servo_tilt_pin=int(rt.get("servo_tilt_pin", 13)),
+        buzzer_pin=int(rt.get("buzzer_pin", 16)),
         db_path=_resolve(REPO_ROOT, rt.get("db_path", "deskbot.db")),
         host=rt.get("host", "0.0.0.0"),
         port=int(rt.get("port", 8000)),

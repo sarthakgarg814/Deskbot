@@ -61,13 +61,28 @@ def _oled_thread(hw, pub) -> None:
     smooth and never perturb the servo control loop. Modes: eyes | status."""
     import random
 
-    from .oled_face import draw_face
+    from .oled_face import draw_face, draw_water
 
     next_blink = time.monotonic() + random.uniform(2.5, 6.0)
     blink_until = 0.0
     last_status = 0.0
     while True:
         now = time.monotonic()
+        try:
+            # a transient alert (e.g. water reminder) overrides eyes/status
+            alert = pub.get_state("state:oled.alert")
+            if isinstance(alert, dict) and alert.get("type") == "water":
+                hw.oled.render(lambda d, w, h: draw_water(d, w, h, now))
+                if now - last_status >= 0.5:
+                    last_status = now
+                    pub.set_state("state:oled",
+                                  {"mode": "alert", "alert": "water",
+                                   "lines": ["(drink water!)"]}, ttl=5)
+                time.sleep(0.06)
+                continue
+        except Exception as e:  # noqa: BLE001
+            log.debug("oled alert: %s", e)
+
         cfg = pub.get_state("state:oled.config") or {}
         mode = cfg.get("mode", "eyes")
         try:
@@ -121,7 +136,7 @@ def _config_from_state(vc: dict | None, base: ArbiterConfig) -> ArbiterConfig:
 def _subscriber_thread(sub, hw, commands: dict, lock: threading.Lock, pub) -> None:
     """Translate bus commands into arbiter commands / device actions."""
     for topic, payload in sub.listen(
-        "cmd.servo.target", "cmd.servo.center", "cmd.led.state"
+        "cmd.servo.target", "cmd.servo.center", "cmd.led.state", "cmd.buzzer.beep"
     ):
         now = time.monotonic()
         if topic == "cmd.servo.target":
@@ -140,6 +155,8 @@ def _subscriber_thread(sub, hw, commands: dict, lock: threading.Lock, pub) -> No
         elif topic == "cmd.led.state":
             hw.led.set_state(payload.get("state", "idle"))
             pub.set_state("state:led", {"state": hw.led.get_state()})
+        elif topic == "cmd.buzzer.beep":
+            hw.buzzer.beep(count=int(payload.get("count", 1)))
 
 
 def run() -> None:

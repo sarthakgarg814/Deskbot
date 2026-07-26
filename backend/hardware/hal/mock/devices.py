@@ -46,6 +46,11 @@ class MockLed:
         self.set_state("off")
 
 
+class MockBuzzer:
+    def beep(self, count: int = 1, on: float = 0.15, off: float = 0.1) -> None:
+        log.info("buzzer -> beep x%d", count)
+
+
 class MockOled:
     def __init__(self) -> None:
         self._lines: list[str] = ["DeskBot", "ready"]

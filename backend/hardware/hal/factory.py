@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from .base import HardwareMonitor, LedStrip, OledDisplay, ServoController
+from .base import Buzzer, HardwareMonitor, LedStrip, OledDisplay, ServoController
 from .monitor import RealMonitor
 
 log = logging.getLogger("deskbot.hw")
@@ -21,6 +21,7 @@ class Hardware:
     servo: ServoController
     led: LedStrip
     oled: OledDisplay
+    buzzer: Buzzer
     monitor: HardwareMonitor
     backend: str
 
@@ -31,25 +32,38 @@ def get_hardware(backend: str = "mock") -> Hardware:
     monitor = RealMonitor()
 
     if backend == "mock":
-        from .mock import MockLed, MockOled, MockServo
+        from .mock import MockBuzzer, MockLed, MockOled, MockServo
 
         log.info("hardware backend: mock")
-        return Hardware(MockServo(), MockLed(), MockOled(), monitor, "mock")
+        return Hardware(MockServo(), MockLed(), MockOled(), MockBuzzer(), monitor, "mock")
 
     if backend == "real":
-        # Real servos (SG90 via gpiozero/lgpio). LED + OLED stay mocked until their
-        # own milestone, so `real` today = real neck, simulated lights/display.
+        # Real servos (SG90 via hardware PWM), OLED (SSD1306), and buzzer. LEDs
+        # stay mocked until their own milestone.
         from common.config import load_config
 
-        from .mock import MockLed, MockOled
+        from .mock import MockLed
 
         cfg = load_config()
         servo = _make_real_servo(cfg.servo_pan_pin, cfg.servo_tilt_pin)
         oled = _make_real_oled()
-        log.info("hardware backend: real (servo + oled) + mock (led)")
-        return Hardware(servo, MockLed(), oled, monitor, "real")
+        buzzer = _make_real_buzzer(cfg.buzzer_pin)
+        log.info("hardware backend: real (servo + oled + buzzer) + mock (led)")
+        return Hardware(servo, MockLed(), oled, buzzer, monitor, "real")
 
     raise ValueError(f"unknown hardware backend: {backend!r}")
+
+
+def _make_real_buzzer(pin: int):
+    try:
+        from .buzzer_real import RealBuzzer
+
+        return RealBuzzer(pin)
+    except Exception as e:  # noqa: BLE001
+        log.warning("buzzer init failed (%s) — falling back to mock buzzer", e)
+        from .mock import MockBuzzer
+
+        return MockBuzzer()
 
 
 def _make_real_servo(pan_pin: int, tilt_pin: int):

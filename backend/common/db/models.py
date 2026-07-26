@@ -52,3 +52,14 @@ class Note(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     user: Mapped["User | None"] = relationship(back_populates="notes")
+
+
+class WaterEvent(Base):
+    """Reminders sent and drinks logged — used to time the next reminder and
+    count today's intake. Both kinds reset the reminder interval."""
+
+    __tablename__ = "water_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(20))   # "reminder_sent" | "drank"
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
