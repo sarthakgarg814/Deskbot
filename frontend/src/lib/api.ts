@@ -105,6 +105,8 @@ export const api = {
   cameraCenter: () => req<{ ok: boolean }>("/camera/center", { method: "POST" }),
 
   calendarAuth: () => req<CalAuth>("/calendar/auth"),
+  calendarConfig: () => req<CalConfig>("/calendar/config"),
+  calendarCalendars: () => req<CalInfo[]>("/calendar/calendars"),
   calendarToday: () => req<CalEvent[]>("/calendar/today"),
   calendarUpcoming: () => req<CalEvent[]>("/calendar/upcoming"),
   calendarSync: () => req<{ synced: number; events: CalEvent[] }>("/calendar/sync", { method: "POST" }),
@@ -135,12 +137,29 @@ export interface CalEvent {
   end: string;
   location: string;
   source: string;
+  primary: boolean;
   all_day: boolean;
 }
 
 export interface CalAuth {
   has_client_secret: boolean;
   connected: boolean;
+}
+
+export interface CalConfig extends CalAuth {
+  enabled: boolean;
+  sync_min: number;
+  reminder_min: number;
+  hide_busy: boolean;
+  meeting_mode: boolean;
+  enabled_ids: string[];
+}
+
+export interface CalInfo {
+  id: string;
+  name: string;
+  primary: boolean;
+  enabled: boolean;
 }
 
 export interface WaterStatus {

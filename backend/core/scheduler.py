@@ -20,20 +20,15 @@ class Scheduler:
         self._bus = bus
         self._monitor = monitor
         self._sched = AsyncIOScheduler()
+        self._last_cal_sync = 0.0
 
     def start(self) -> None:
-        from common.db import session_scope
-        from core.services.settings_service import get_value
-
-        with session_scope() as s:
-            sync_min = max(1, int(get_value(s, "calendar.sync_min", 15)))
-
         self._sched.add_job(self._sample_system, "interval", seconds=1, id="system_sample")
         self._sched.add_job(self._water_check, "interval", seconds=30, id="water_check")
-        self._sched.add_job(self._calendar_sync, "interval", minutes=sync_min, id="calendar_sync")
+        self._sched.add_job(self._calendar_sync, "interval", seconds=60, id="calendar_sync")
         self._sched.add_job(self._meeting_check, "interval", seconds=45, id="meeting_check")
         self._sched.start()
-        log.info("scheduler started (system 1Hz, water 30s, calendar %dm, meetings 45s)", sync_min)
+        log.info("scheduler started (system 1Hz, water 30s, calendar self-paced, meetings 45s)")
 
     def shutdown(self) -> None:
         if self._sched.running:
@@ -71,18 +66,23 @@ class Scheduler:
             await self._bus.publish("cmd.buzzer.beep", {"count": 2})
 
     async def _calendar_sync(self) -> None:
+        import time as _t
+
         from common.db import session_scope
         from core.services import calendar_service
-        from core.services.settings_service import get_value
 
         with session_scope() as s:
-            if not bool(get_value(s, "calendar.enabled", False)):
-                return
+            cfg = calendar_service.config(s)
+        if not cfg["enabled"]:
+            return
+        now = _t.monotonic()
+        if now - self._last_cal_sync < cfg["sync_min"] * 60:  # self-paced (live setting)
+            return
+        self._last_cal_sync = now
         try:
             with session_scope() as s:
                 n = calendar_service.sync(s)
-            if n:
-                await self._bus.publish("calendar", {"synced": n})
+            await self._bus.publish("calendar", {"synced": n})
         except Exception as e:  # noqa: BLE001 — missing libs / auth / network
             log.warning("calendar sync failed: %s", e)
 
@@ -91,24 +91,40 @@ class Scheduler:
 
         from common.db import session_scope
         from core.services import calendar_service
-        from core.services.settings_service import get_value
 
+        up = st = None
         with session_scope() as s:
-            if not bool(get_value(s, "calendar.enabled", False)):
+            cfg = calendar_service.config(s)
+            if not cfg["enabled"]:
                 return
-            within = int(get_value(s, "calendar.reminder_min", 5))
-            ev = calendar_service.due_meeting(s, within)
-            if ev is None:
-                return
-            start = ev.start_utc.replace(tzinfo=timezone.utc)
-            mins = max(0, int((start - datetime.now(timezone.utc)).total_seconds() // 60))
-            title = ev.title
-            ev.reminded = True
+            nxt = calendar_service.next_event(s)
+            ev = calendar_service.due_meeting(s, cfg["reminder_min"])
+            if ev is not None:
+                start = ev.start_utc.replace(tzinfo=timezone.utc)
+                mins = max(0, int((start - datetime.now(timezone.utc)).total_seconds() // 60))
+                up = {"title": ev.title, "mins": mins, "source": ev.source, "primary": ev.primary}
+                ev.reminded = True
+            sv = calendar_service.due_started(s) if cfg["meeting_mode"] else None
+            if sv is not None:
+                st = {"title": sv.title, "source": sv.source, "primary": sv.primary}
+                sv.started_notified = True
 
-        log.info("meeting reminder: %s in %dm", title, mins)
-        await self._bus.publish("reminder",
-                                {"type": "meeting", "message": f"{title} in {mins} min"})
-        await self._bus.set_state("state:oled.alert",
-                                  {"type": "meeting", "title": title, "mins": mins}, ttl=12)
-        await self._bus.publish("cmd.led.state", {"state": "meeting"})
-        await self._bus.publish("cmd.buzzer.beep", {"count": 3})
+        # next event → OLED stats footer + dashboard
+        await self._bus.set_state("state:calendar", {"next": nxt}, ttl=180)
+
+        if up:
+            log.info("meeting reminder: %s in %dm", up["title"], up["mins"])
+            await self._bus.publish("reminder", {"type": "meeting",
+                                                 "message": f'{up["title"]} in {up["mins"]} min'})
+            await self._bus.set_state("state:oled.alert",
+                                      {"type": "meeting", "phase": "upcoming", **up}, ttl=12)
+            await self._bus.publish("cmd.led.state", {"state": "meeting"})
+            await self._bus.publish("cmd.buzzer.beep", {"count": 3})
+        if st:
+            log.info("meeting started: %s", st["title"])
+            await self._bus.publish("reminder", {"type": "meeting",
+                                                 "message": f'{st["title"]} — now'})
+            await self._bus.set_state("state:oled.alert",
+                                      {"type": "meeting", "phase": "started", **st}, ttl=10)
+            await self._bus.publish("cmd.led.state", {"state": "meeting"})
+            await self._bus.publish("cmd.buzzer.beep", {"count": 1})

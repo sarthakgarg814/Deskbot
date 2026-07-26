@@ -68,7 +68,7 @@ def _ic_wifi(draw, x, y):       # signal arcs
 
 
 def draw_stats(draw, W: int, H: int, *, clock: str, cpu, temp, ram, disk,
-               uptime: str, wifi: bool = True) -> None:
+               uptime: str, wifi: bool = True, next_event: str | None = None) -> None:
     """A dense one-frame system dashboard with tiny icons (128x64)."""
     draw.rectangle((0, 0, W, H), fill="black")
 
@@ -88,9 +88,36 @@ def draw_stats(draw, W: int, H: int, *, clock: str, cpu, temp, ram, disk,
     cell(3, 34, _ic_ram, pct(ram))
     cell(66, 34, _ic_disk, pct(disk))
 
-    # footer: uptime
+    # footer: next calendar event if we have one, else uptime
     draw.line((0, 52, W, 52), fill="white")
-    draw.text((2, 54), f"up {uptime}", fill="white")
+    draw.text((2, 54), (">" + next_event)[:21] if next_event else f"up {uptime}", fill="white")
+
+
+def _bell(draw, cx: int, cy: int, color: str) -> None:
+    draw.line((cx, cy, cx, cy + 2), fill=color)                       # handle
+    draw.arc((cx - 7, cy + 1, cx + 7, cy + 15), 180, 360, fill=color)  # dome
+    draw.line((cx - 7, cy + 8, cx - 9, cy + 13), fill=color)
+    draw.line((cx + 7, cy + 8, cx + 9, cy + 13), fill=color)
+    draw.line((cx - 9, cy + 13, cx + 9, cy + 13), fill=color)          # base
+    draw.ellipse((cx - 1, cy + 13, cx + 2, cy + 16), fill=color)       # clapper
+
+
+def draw_meeting(draw, W: int, H: int, t: float, title: str = "Meeting",
+                 mins: int = 0, started: bool = False) -> None:
+    """Meeting alert. Upcoming: a shaking bell + 'in N min'. Started: flashing 'NOW'."""
+    import math
+
+    flash = started and int(t * 2) % 2 == 0
+    bg = "white" if flash else "black"
+    fg = "black" if flash else "white"
+    draw.rectangle((0, 0, W, H), fill=bg)
+
+    sway = 0 if started else int(3 * math.sin(t * 9))       # bell shakes when upcoming
+    _bell(draw, W // 2 + sway, 2, fg)
+
+    draw.text((6, 22), "MEETING", fill=fg)
+    draw.text((6, 36), title[:18], fill=fg)
+    draw.text((6, 50), "NOW" if started else f"in {mins} min", fill=fg)
 
 
 def draw_water(draw, W: int, H: int, t: float) -> None:

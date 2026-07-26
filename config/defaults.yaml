@@ -86,6 +86,9 @@ settings:
   - { key: calendar.enabled,       value: false,     type: bool,  namespace: calendar }
   - { key: calendar.sync_min,      value: 15,        type: int,   namespace: calendar }  # sync every N min
   - { key: calendar.reminder_min,  value: 5,         type: int,   namespace: calendar }  # alert N min before a meeting
+  - { key: calendar.hide_busy,     value: false,     type: bool,  namespace: calendar }  # hide detail-less work "Busy" blocks
+  - { key: calendar.meeting_mode,  value: true,      type: bool,  namespace: calendar }  # react when a meeting starts
+  - { key: calendar.enabled_ids,   value: [],        type: json,  namespace: calendar }  # calendar IDs to include ([]=all visible)
 
   # --- mood ---
   - { key: mood.enabled,           value: true,      type: bool,  namespace: mood }

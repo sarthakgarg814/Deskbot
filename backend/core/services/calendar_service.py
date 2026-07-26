@@ -96,6 +96,43 @@ def disconnect() -> None:
         cfg.google_token.unlink()
 
 
+def config(s: Session) -> dict:
+    from core.services.settings_service import get_value
+
+    ids = get_value(s, "calendar.enabled_ids", [])
+    return {
+        "enabled": bool(get_value(s, "calendar.enabled", False)),
+        "sync_min": int(get_value(s, "calendar.sync_min", 15)),
+        "reminder_min": int(get_value(s, "calendar.reminder_min", 5)),
+        "hide_busy": bool(get_value(s, "calendar.hide_busy", False)),
+        "meeting_mode": bool(get_value(s, "calendar.meeting_mode", True)),
+        "enabled_ids": [str(x) for x in ids] if isinstance(ids, list) else [],
+    }
+
+
+def calendars(s: Session) -> list[dict]:
+    """List the account's calendars + whether each is included in DeskBot."""
+    creds = _credentials()
+    if creds is None:
+        return []
+    from googleapiclient.discovery import build
+
+    svc = build("calendar", "v3", credentials=creds, cache_discovery=False)
+    items = svc.calendarList().list().execute().get("items", [])
+    ids = config(s)["enabled_ids"]
+    out = []
+    for c in items:
+        cid = c["id"]
+        enabled = (cid in ids) if ids else bool(c.get("selected") or c.get("primary"))
+        out.append({
+            "id": cid,
+            "name": c.get("summaryOverride") or c.get("summary") or cid,
+            "primary": bool(c.get("primary")),
+            "enabled": enabled,
+        })
+    return out
+
+
 def _credentials():
     """Load + refresh the stored token; None if not connected/invalid."""
     cfg = load_config()
@@ -130,10 +167,15 @@ def sync(s: Session) -> int:
     now_naive = now.replace(tzinfo=None)
     time_min, time_max = now.isoformat(), (now + timedelta(days=7)).isoformat()
 
-    # all calendars this account can see + has selected (primary + shared/added)
+    # which calendars to pull: the user's explicit selection, else all visible ones
     cals = svc.calendarList().list().execute().get("items", [])
-    cal_ids = [c["id"] for c in cals if c.get("selected") or c.get("primary")] or ["primary"]
+    chosen = config(s)["enabled_ids"]
+    if chosen:
+        cal_ids = [c["id"] for c in cals if c["id"] in chosen] or ["primary"]
+    else:
+        cal_ids = [c["id"] for c in cals if c.get("selected") or c.get("primary")] or ["primary"]
     cal_name = {c["id"]: (c.get("summaryOverride") or c.get("summary") or c["id"]) for c in cals}
+    cal_primary = {c["id"]: bool(c.get("primary")) for c in cals}
 
     seen: set[str] = set()
     total = 0
@@ -158,6 +200,7 @@ def sync(s: Session) -> int:
             row.end_utc = _parse(it["end"].get("dateTime") or it["end"].get("date"))
             row.location = it.get("location", "") or ""
             row.source = cal_name.get(cid, "")
+            row.primary = cal_primary.get(cid, False)
             row.all_day = "date" in it["start"]
             row.synced_at = now_naive
             total += 1
@@ -175,8 +218,16 @@ def _out(r: CalendarEvent) -> dict:
     return {
         "id": r.id, "title": r.title,
         "start": r.start_utc.isoformat() + "Z", "end": r.end_utc.isoformat() + "Z",
-        "location": r.location, "source": r.source, "all_day": r.all_day,
+        "location": r.location, "source": r.source, "primary": r.primary,
+        "all_day": r.all_day,
     }
+
+
+def _base_query(s: Session):
+    q = select(CalendarEvent)
+    if config(s)["hide_busy"]:
+        q = q.where(CalendarEvent.title != "Busy")
+    return q
 
 
 def _local_day_bounds() -> tuple[datetime, datetime]:
@@ -189,8 +240,7 @@ def _local_day_bounds() -> tuple[datetime, datetime]:
 def today(s: Session) -> list[dict]:
     start, end = _local_day_bounds()
     rows = s.scalars(
-        select(CalendarEvent).where(CalendarEvent.start_utc >= start,
-                                    CalendarEvent.start_utc < end)
+        _base_query(s).where(CalendarEvent.start_utc >= start, CalendarEvent.start_utc < end)
         .order_by(CalendarEvent.start_utc)
     ).all()
     return [_out(r) for r in rows]
@@ -199,10 +249,19 @@ def today(s: Session) -> list[dict]:
 def upcoming(s: Session, limit: int = 10) -> list[dict]:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     rows = s.scalars(
-        select(CalendarEvent).where(CalendarEvent.end_utc >= now)
+        _base_query(s).where(CalendarEvent.end_utc >= now)
         .order_by(CalendarEvent.start_utc).limit(limit)
     ).all()
     return [_out(r) for r in rows]
+
+
+def next_event(s: Session) -> dict | None:
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    r = s.scalars(
+        _base_query(s).where(CalendarEvent.start_utc >= now)
+        .order_by(CalendarEvent.start_utc).limit(1)
+    ).first()
+    return _out(r) if r else None
 
 
 def due_meeting(s: Session, within_min: int):
@@ -210,9 +269,21 @@ def due_meeting(s: Session, within_min: int):
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     horizon = now + timedelta(minutes=within_min)
     return s.scalars(
-        select(CalendarEvent).where(
+        _base_query(s).where(
             CalendarEvent.reminded == False,  # noqa: E712
             CalendarEvent.start_utc >= now,
             CalendarEvent.start_utc <= horizon,
+        ).order_by(CalendarEvent.start_utc).limit(1)
+    ).first()
+
+
+def due_started(s: Session):
+    """A meeting that has just started and hasn't had its 'now' alert (or None)."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    return s.scalars(
+        _base_query(s).where(
+            CalendarEvent.started_notified == False,  # noqa: E712
+            CalendarEvent.start_utc <= now,
+            CalendarEvent.start_utc >= now - timedelta(minutes=2),
         ).order_by(CalendarEvent.start_utc).limit(1)
     ).first()

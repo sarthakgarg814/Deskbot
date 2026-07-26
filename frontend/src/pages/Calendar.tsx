@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { api, type CalAuth, type CalEvent } from "../lib/api";
+import { useEffect, useState, type ReactNode } from "react";
+import { api, type CalAuth, type CalConfig, type CalEvent, type CalInfo } from "../lib/api";
 
 function Connect({ auth, onDone }: { auth: CalAuth; onDone: () => void }) {
   const [hasSecret, setHasSecret] = useState(auth.has_client_secret);
@@ -115,6 +115,12 @@ function countdown(ev: CalEvent): string {
   return `in ${h}h ${mins % 60}m`;
 }
 
+function Tag({ ev }: { ev: CalEvent }) {
+  const label = ev.primary ? "Personal" : (ev.source?.split("@")[0] || "shared");
+  const cls = ev.primary ? "bg-led-idle/20 text-led-idle" : "bg-amber-500/20 text-amber-400";
+  return <span className={`ml-2 rounded px-1.5 py-0.5 text-[10px] ${cls}`}>{label}</span>;
+}
+
 export default function Calendar() {
   const [auth, setAuth] = useState<CalAuth | null>(null);
   const [today, setToday] = useState<CalEvent[]>([]);
@@ -175,7 +181,7 @@ export default function Calendar() {
       {next && (
         <div className="rounded-xl border border-led-idle/40 bg-led-idle/10 p-5 mb-5">
           <div className="text-xs uppercase tracking-wide text-neutral-400">Next up · {countdown(next)}</div>
-          <div className="text-xl font-semibold mt-1">{next.title}</div>
+          <div className="text-xl font-semibold mt-1">{next.title}<Tag ev={next} /></div>
           <div className="text-sm text-neutral-400 mt-0.5">
             {when(next)}{next.location ? ` · ${next.location}` : ""}
           </div>
@@ -188,10 +194,7 @@ export default function Calendar() {
         {today.map((e) => (
           <li key={e.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
             <span className="w-16 tabular-nums text-neutral-400">{when(e)}</span>
-            <span className="flex-1 truncate">
-              {e.title}
-              {e.source && <span className="ml-2 text-xs text-neutral-600">· {e.source}</span>}
-            </span>
+            <span className="flex-1 truncate">{e.title}<Tag ev={e} /></span>
             <span className="text-xs text-neutral-500">{countdown(e)}</span>
           </li>
         ))}
@@ -205,10 +208,90 @@ export default function Calendar() {
             <span className="w-28 text-neutral-400">
               {new Date(e.start).toLocaleDateString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}
             </span>
-            <span className="flex-1 truncate">{e.title}</span>
+            <span className="flex-1 truncate">{e.title}<Tag ev={e} /></span>
           </li>
         ))}
       </ul>
+
+      <CalendarSettings />
+    </div>
+  );
+}
+
+function CalendarSettings() {
+  const [cfg, setCfg] = useState<CalConfig | null>(null);
+  const [cals, setCals] = useState<CalInfo[]>([]);
+
+  const load = async () => {
+    setCfg(await api.calendarConfig().catch(() => null));
+    setCals(await api.calendarCalendars().catch(() => []));
+  };
+  useEffect(() => { load(); }, []);
+
+  const set = async (key: string, value: unknown) => {
+    await api.updateSettings([{ key, value }]);
+    load();
+  };
+
+  const toggleCal = async (id: string) => {
+    const current = cfg?.enabled_ids?.length ? cfg.enabled_ids : cals.filter((c) => c.enabled).map((c) => c.id);
+    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    await set("calendar.enabled_ids", next);
+  };
+
+  if (!cfg) return null;
+  const enabledId = (id: string) => (cfg.enabled_ids.length ? cfg.enabled_ids.includes(id) : cals.find((c) => c.id === id)?.enabled);
+
+  return (
+    <div className="mt-8">
+      <h2 className="text-xs uppercase tracking-wide text-neutral-500 mb-2">Settings</h2>
+      <div className="rounded-lg border border-neutral-800 divide-y divide-neutral-800 mb-5">
+        <Row label="Sync every (min)">
+          <input type="number" min={1} defaultValue={cfg.sync_min}
+                 onBlur={(e) => set("calendar.sync_min", parseInt(e.target.value || "15", 10))}
+                 className="w-20 rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-sm text-right" />
+        </Row>
+        <Row label="Remind before meeting (min)">
+          <input type="number" min={0} defaultValue={cfg.reminder_min}
+                 onBlur={(e) => set("calendar.reminder_min", parseInt(e.target.value || "5", 10))}
+                 className="w-20 rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-sm text-right" />
+        </Row>
+        <Row label="Meeting mode (react when a meeting starts)">
+          <input type="checkbox" checked={cfg.meeting_mode} onChange={(e) => set("calendar.meeting_mode", e.target.checked)}
+                 className="h-4 w-4 accent-led-idle" />
+        </Row>
+        <Row label={'Hide detail-less "Busy" blocks'}>
+          <input type="checkbox" checked={cfg.hide_busy} onChange={(e) => set("calendar.hide_busy", e.target.checked)}
+                 className="h-4 w-4 accent-led-idle" />
+        </Row>
+      </div>
+
+      {cals.length > 0 && (
+        <>
+          <h2 className="text-xs uppercase tracking-wide text-neutral-500 mb-2">Calendars to include</h2>
+          <ul className="rounded-lg border border-neutral-800 divide-y divide-neutral-800">
+            {cals.map((c) => (
+              <li key={c.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                <span className="truncate">
+                  {c.name}
+                  {c.primary && <span className="ml-2 text-[10px] text-led-idle">primary</span>}
+                </span>
+                <input type="checkbox" checked={Boolean(enabledId(c.id))} onChange={() => toggleCal(c.id)}
+                       className="h-4 w-4 accent-led-idle" />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-sm text-neutral-300">{label}</span>
+      {children}
     </div>
   );
 }

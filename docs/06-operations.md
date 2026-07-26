@@ -132,8 +132,16 @@ dashboard toast. "I drank water" / the interval both reset the timer.
 | Key | Default | Effect |
 |-----|---------|--------|
 | `calendar.enabled` | false | turn on Google Calendar sync (needs credentials) |
-| `calendar.sync_min` | 15 | sync interval |
+| `calendar.sync_min` | 15 | sync interval (live — self-paced, no restart) |
 | `calendar.reminder_min` | 5 | fire a meeting alert this many minutes before |
+| `calendar.hide_busy` | false | hide detail-less shared "Busy" work blocks |
+| `calendar.meeting_mode` | true | also alert (flashing "NOW") when a meeting starts |
+| `calendar.enabled_ids` | [] | which calendars to include (`[]` = all visible); edit via the Calendar page checkboxes |
+
+All calendar config is editable on the **Calendar page** (connect flow + settings +
+per-calendar selection). Events are tagged **Personal** (primary) vs their shared
+calendar name. The OLED shows a shaking-bell "in N min" for upcoming meetings, a
+flashing "NOW" at start, and the next event on the stats screen footer.
 
 **Connecting (free, no billing) — all from the dashboard:** Google Cloud → enable
 Calendar API → OAuth consent (add yourself as a test user, set *In production* to

@@ -53,6 +53,20 @@ def _fmt_uptime(sec) -> str:
     return f"{d}d {h}h" if d else (f"{h}h {m}m" if h else f"{m}m")
 
 
+def _next_event_str(pub) -> str | None:
+    cal = pub.get_state("state:calendar") or {}
+    nxt = cal.get("next")
+    if not isinstance(nxt, dict):
+        return None
+    from datetime import datetime
+
+    try:
+        t = datetime.fromisoformat(nxt["start"].replace("Z", "+00:00")).astimezone()
+        return f"{t:%H:%M} {nxt.get('title', '')[:12]}"
+    except Exception:  # noqa: BLE001
+        return (nxt.get("title") or "")[:16] or None
+
+
 def _render_stats(hw, pub) -> None:
     """Draw the icon system-stats dashboard (shared by status mode + the flash)."""
     from .oled_face import draw_stats
@@ -62,7 +76,8 @@ def _render_stats(hw, pub) -> None:
         d, w, h, clock=time.strftime("%H:%M"),
         cpu=sysd.get("cpu_percent"), temp=sysd.get("temp_c"),
         ram=sysd.get("ram_percent"), disk=sysd.get("storage_percent"),
-        uptime=_fmt_uptime(sysd.get("uptime_s")), wifi=bool(sysd)))
+        uptime=_fmt_uptime(sysd.get("uptime_s")), wifi=bool(sysd),
+        next_event=_next_event_str(pub)))
 
 
 def _resolve_emotion(pref: str, present: bool, pub) -> str:
@@ -79,7 +94,7 @@ def _oled_thread(hw, pub) -> None:
     smooth and never perturb the servo control loop. Modes: eyes | status."""
     import random
 
-    from .oled_face import draw_face, draw_water
+    from .oled_face import draw_face, draw_meeting, draw_water
 
     next_blink = time.monotonic() + random.uniform(2.5, 6.0)
     blink_until = 0.0
@@ -101,13 +116,14 @@ def _oled_thread(hw, pub) -> None:
             if isinstance(alert, dict) and alert.get("type") == "meeting":
                 title = str(alert.get("title", "Meeting"))
                 mins = int(alert.get("mins", 0))
-                lines = ["** MEETING **", title[:20], f"in {mins} min"]
-                hw.oled.show_text(lines)
+                started = alert.get("phase") == "started"
+                hw.oled.render(lambda d, w, h: draw_meeting(d, w, h, now, title, mins, started))
                 if now - last_status >= 0.5:
                     last_status = now
                     pub.set_state("state:oled", {"mode": "alert", "alert": "meeting",
-                                                 "lines": lines}, ttl=5)
-                time.sleep(0.3)
+                                                 "lines": [title[:20], "NOW" if started else f"in {mins}m"]},
+                                  ttl=5)
+                time.sleep(0.06)
                 continue
         except Exception as e:  # noqa: BLE001
             log.debug("oled alert: %s", e)

@@ -71,8 +71,10 @@ class CalendarEvent(Base):
     end_utc: Mapped[datetime] = mapped_column(DateTime)
     location: Mapped[str] = mapped_column(String(300), default="")
     source: Mapped[str] = mapped_column(String(160), default="")  # calendar name
+    primary: Mapped[bool] = mapped_column(Boolean, default=False)  # from the primary calendar?
     all_day: Mapped[bool] = mapped_column(Boolean, default=False)
-    reminded: Mapped[bool] = mapped_column(Boolean, default=False)
+    reminded: Mapped[bool] = mapped_column(Boolean, default=False)         # upcoming alert sent
+    started_notified: Mapped[bool] = mapped_column(Boolean, default=False)  # start alert sent
     synced_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 

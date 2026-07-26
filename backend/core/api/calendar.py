@@ -60,6 +60,19 @@ def calendar_disconnect():
     return {"ok": True}
 
 
+@router.get("/config")
+def calendar_config(s: Session = Depends(get_session)):
+    return {**calendar_service.auth_status(), **calendar_service.config(s)}
+
+
+@router.get("/calendars")
+def calendar_list(s: Session = Depends(get_session)):
+    try:
+        return calendar_service.calendars(s)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, f"cannot list calendars: {e}")
+
+
 @router.get("/today")
 def calendar_today(s: Session = Depends(get_session)):
     return calendar_service.today(s)
