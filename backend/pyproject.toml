@@ -1,7 +1,7 @@
 [project]
-name = "deskbot-backend"
+name = "peekabot-backend"
 version = "0.1.0"
-description = "DeskBot AI backend — core, common, hardware services"
+description = "Peekabot AI backend — core, common, hardware services"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110",

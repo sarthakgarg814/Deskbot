@@ -7,7 +7,7 @@ real servos yet, but the wiring, live updates, and settings persistence are real
 
 ## Goal / definition of done
 
-- `deskbot.local` (or Pi IP) serves the React dashboard.
+- `peekabot.local` (or Pi IP) serves the React dashboard.
 - Dashboard **Home** shows live CPU/RAM/temp/storage updating over WebSocket
   (real values via `psutil`/`vcgencmd` — this part *is* real on the Pi).
 - **Settings** page reads/writes the `settings` table; changes persist across
@@ -28,7 +28,7 @@ real servos yet, but the wiring, live updates, and settings persistence are real
 | hardware | HAL interfaces + **mock** drivers; real `HardwareMonitor` (psutil/vcgencmd) so system stats are genuine |
 | frontend | Vite+React+Tailwind shell, routing, WS client, Home / Notes / Settings / Hardware pages |
 | db | schema from [03](03-database-schema.md), seeded from `config/defaults.yaml` |
-| ops | `deskbot-core.service`, dev run scripts, README run steps |
+| ops | `peekabot-core.service`, dev run scripts, README run steps |
 
 ## Scope OUT (later milestones)
 
@@ -62,7 +62,7 @@ frontend/
 ├── index.html vite.config.ts tailwind.config.js
 config/
 ├── defaults.yaml
-└── systemd/deskbot-core.service
+└── systemd/peekabot-core.service
 ```
 
 ## Build order (small, verifiable steps)
@@ -84,7 +84,7 @@ config/
    reload event.
 8. **Hardware page (stubbed)**: mock servo/led/oled drivers + endpoints; UI shows
    logged feedback + OLED preview PNG from the mock.
-9. **Package**: `deskbot-core.service`, boot on Pi, measure UI-load + boot time
+9. **Package**: `peekabot-core.service`, boot on Pi, measure UI-load + boot time
    against §11 targets; write run/deploy steps into README.
 
 Each step is a reviewable commit. We stop and check after step 4 (backend alive)

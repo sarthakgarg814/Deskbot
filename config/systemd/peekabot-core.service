@@ -2,7 +2,7 @@
 # actual user + repo path filled in — prefer running that over copying this by
 # hand. Placeholders below: {{USER}}, {{REPO}}.
 [Unit]
-Description=DeskBot core (FastAPI API + dashboard)
+Description=Peekabot core (FastAPI API + dashboard)
 After=network-online.target
 Wants=network-online.target
 

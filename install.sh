@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# DeskBot one-line installer for Raspberry Pi OS (Trixie, 64-bit).
+# Peekabot one-line installer for Raspberry Pi OS (Trixie, 64-bit).
 #
-#   curl -fsSL https://raw.githubusercontent.com/sarthakgarg814/Deskbot/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/sarthakgarg814/Peekabot/main/install.sh | bash
 #
 # Installs everything: system deps, Redis, camera/opencv, GPIO libs, clones the
 # repo, builds the dashboard, creates the three service venvs, enables hardware
@@ -9,14 +9,14 @@
 # Idempotent — safe to re-run to update.
 set -euo pipefail
 
-REPO_URL="${DESKBOT_REPO:-https://github.com/sarthakgarg814/Deskbot.git}"
+REPO_URL="${DESKBOT_REPO:-https://github.com/sarthakgarg814/Peekabot.git}"
 BRANCH="${DESKBOT_BRANCH:-main}"
-DIR="${DESKBOT_DIR:-$HOME/deskbot}"
+DIR="${DESKBOT_DIR:-$HOME/peekabot}"
 USER_NAME="$(id -un)"
 
 log() { printf "\n\033[1;36m==> %s\033[0m\n" "$*"; }
 
-log "DeskBot installer  (user=$USER_NAME  dir=$DIR)"
+log "Peekabot installer  (user=$USER_NAME  dir=$DIR)"
 
 log "System packages"
 sudo apt-get update -qq
@@ -29,7 +29,7 @@ sudo raspi-config nonint do_i2c 0 || true
 sudo raspi-config nonint do_spi 0 || true
 sudo raspi-config nonint do_camera 0 || true
 
-log "Fetching DeskBot"
+log "Fetching Peekabot"
 if [ -d "$DIR/.git" ]; then
   git -C "$DIR" fetch --depth 1 origin "$BRANCH" && git -C "$DIR" reset --hard "origin/$BRANCH"
 else
@@ -76,9 +76,9 @@ if ! grep -qF "$OVERLAY" "$CONFIG_TXT"; then
 fi
 
 log "systemd services"
-sudo tee /etc/systemd/system/deskbot-core.service >/dev/null <<UNIT
+sudo tee /etc/systemd/system/peekabot-core.service >/dev/null <<UNIT
 [Unit]
-Description=DeskBot core (API + dashboard)
+Description=Peekabot core (API + dashboard)
 After=network-online.target redis-server.service
 Wants=redis-server.service network-online.target
 [Service]
@@ -94,9 +94,9 @@ UNIT
 
 for svc in vision hardware; do
   venv=".venv-$svc"
-  sudo tee /etc/systemd/system/deskbot-$svc.service >/dev/null <<UNIT
+  sudo tee /etc/systemd/system/peekabot-$svc.service >/dev/null <<UNIT
 [Unit]
-Description=DeskBot $svc
+Description=Peekabot $svc
 After=network-online.target redis-server.service
 Wants=redis-server.service
 [Service]
@@ -112,16 +112,16 @@ UNIT
 done
 
 sudo systemctl daemon-reload
-sudo systemctl enable deskbot-core deskbot-vision deskbot-hardware
-sudo systemctl restart deskbot-core deskbot-vision deskbot-hardware || true
+sudo systemctl enable peekabot-core peekabot-vision peekabot-hardware
+sudo systemctl restart peekabot-core peekabot-vision peekabot-hardware || true
 
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 cat <<EOF
 
 ============================================================
-  DeskBot is installed and running.
+  Peekabot is installed and running.
   Dashboard:  http://$(hostname).local:8000   (or http://${IP:-<pi-ip>}:8000)
-  Login password:  deskbot   (change it under Account)
+  Login password:  peekabot   (change it under Account)
 ============================================================
 EOF
 [ "${NEED_REBOOT:-0}" = 1 ] && echo "  *** REBOOT REQUIRED for hardware PWM + camera:  sudo reboot ***"

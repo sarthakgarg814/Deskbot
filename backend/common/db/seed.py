@@ -13,7 +13,7 @@ from sqlalchemy import select
 from .base import session_scope
 from .models import Setting, User
 
-log = logging.getLogger("deskbot")
+log = logging.getLogger("peekabot")
 
 
 def _encode(value: Any) -> str:

@@ -1,1 +1,1 @@
-"""Shared libraries used by all DeskBot services (core, vision, voice, hardware)."""
+"""Shared libraries used by all Peekabot services (core, vision, voice, hardware)."""

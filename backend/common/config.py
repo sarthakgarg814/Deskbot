@@ -40,7 +40,7 @@ class RuntimeConfig:
     # console; token.json generated once by scripts/google-auth.py.
     google_client_secret: Path = REPO_ROOT / "config" / "google" / "client_secret.json"
     google_token: Path = REPO_ROOT / "config" / "google" / "token.json"
-    db_path: Path = REPO_ROOT / "deskbot.db"
+    db_path: Path = REPO_ROOT / "peekabot.db"
     host: str = "0.0.0.0"
     port: int = 8000
     log_level: str = "INFO"
@@ -77,7 +77,7 @@ def load_config(path: Path | None = None) -> RuntimeConfig:
         touch_pin=int(rt.get("touch_pin", 17)),
         google_client_secret=_resolve(REPO_ROOT, rt.get("google_client_secret", "config/google/client_secret.json")),
         google_token=_resolve(REPO_ROOT, rt.get("google_token", "config/google/token.json")),
-        db_path=_resolve(REPO_ROOT, rt.get("db_path", "deskbot.db")),
+        db_path=_resolve(REPO_ROOT, rt.get("db_path", "peekabot.db")),
         host=rt.get("host", "0.0.0.0"),
         port=int(rt.get("port", 8000)),
         log_level=rt.get("log_level", "INFO"),

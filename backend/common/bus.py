@@ -132,7 +132,7 @@ class LogPublisher:
     def __init__(self) -> None:
         import logging
 
-        self._log = logging.getLogger("deskbot.bus.log")
+        self._log = logging.getLogger("peekabot.bus.log")
 
     def publish(self, topic: str, payload: dict[str, Any]) -> None:
         self._log.debug("publish %s %s", topic, payload)

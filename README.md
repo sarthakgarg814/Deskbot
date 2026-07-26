@@ -1,4 +1,4 @@
-# DeskBot AI
+# Peekabot AI
 
 A privacy-first, local-first AI desktop companion built on a Raspberry Pi 4. It
 physically follows your face, tracks healthy habits, manages notes and calendar,
@@ -22,7 +22,7 @@ and responds to voice — processing almost everything **on-device**.
 ## Repository map
 
 ```
-deskbot/
+peekabot/
 ├── backend/            # Python — the four services + shared libs
 │   ├── core/           #   FastAPI app, WebSocket, scheduler, reminder engine
 │   ├── vision/         #   camera, face detection, presence, mood detection
@@ -68,19 +68,19 @@ make setup && make frontend-install && make frontend-build && make backend
 ### Install on a Raspberry Pi — one line
 On a fresh Raspberry Pi OS (Trixie, 64-bit), SSH in and run:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sarthakgarg814/Deskbot/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sarthakgarg814/Peekabot/main/install.sh | bash
 ```
 Installs everything (deps, Redis, camera, GPIO, builds the dashboard, all three
-services), then it's live at **http://deskbot.local:8000**. Default login password
-is **`deskbot`** — change it under **Account**. (A reboot is needed once for the
+services), then it's live at **http://peekabot.local:8000**. Default login password
+is **`peekabot`** — change it under **Account**. (A reboot is needed once for the
 hardware-PWM overlay.)
 
 ### Dev deploy (from your laptop)
 ```bash
-./scripts/deploy-to-pi.sh deskbot@deskbot.local     # build + rsync
+./scripts/deploy-to-pi.sh peekabot@peekabot.local     # build + rsync
 # first time: ./scripts/setup-pi.sh, setup-vision-pi.sh, setup-hardware-pi.sh [--real]
 ```
 
-**Auth:** the dashboard + API are password-protected (default `deskbot`). See
+**Auth:** the dashboard + API are password-protected (default `peekabot`). See
 [docs/06-operations.md](docs/06-operations.md#authentication). Wiring:
 [docs/06-operations.md#wiring](docs/06-operations.md#wiring).

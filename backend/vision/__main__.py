@@ -33,8 +33,8 @@ def main() -> None:
     ap.add_argument("--preview", default=None, help="save one annotated frame to this path")
     args = ap.parse_args()
 
-    setup_logging("INFO", "deskbot.vision")
-    log = logging.getLogger("deskbot.vision")
+    setup_logging("INFO", "peekabot.vision")
+    log = logging.getLogger("peekabot.vision")
 
     # 'auto' -> Pi camera; a bare integer -> webcam index; else a file path
     if args.source == "auto":

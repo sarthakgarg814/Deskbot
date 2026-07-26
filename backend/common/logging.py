@@ -7,7 +7,7 @@ import sys
 _CONFIGURED = False
 
 
-def setup_logging(level: str = "INFO", service: str = "deskbot") -> logging.Logger:
+def setup_logging(level: str = "INFO", service: str = "peekabot") -> logging.Logger:
     global _CONFIGURED
     if not _CONFIGURED:
         handler = logging.StreamHandler(sys.stdout)

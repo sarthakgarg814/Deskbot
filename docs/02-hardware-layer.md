@@ -113,4 +113,4 @@ loop @ ~25 Hz:
 - Add user to `gpio`, `i2c`, `spi`, `video` groups
 - Servos: PCA9685 shows up on `i2cdetect -y 1` (usually `0x40`); or use lgpio
 - NeoPixel: either run `hardware` as root or wire on SPI (decide Q3)
-- `avahi-daemon` for `deskbot.local` (present by default on Pi OS)
+- `avahi-daemon` for `peekabot.local` (present by default on Pi OS)

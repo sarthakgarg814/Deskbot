@@ -30,7 +30,7 @@ from .camera import open_camera
 from .detector import YuNetDetector
 from .preview import FramePreview, start_preview_server
 
-log = logging.getLogger("deskbot.vision.service")
+log = logging.getLogger("peekabot.vision.service")
 
 AWAY_AFTER_S = 8.0          # no face this long → presence "away"
 PUBLISH_HZ = 6.0           # cap dashboard pushes + state writes
@@ -173,7 +173,7 @@ def main() -> None:
     ap.add_argument("--height", type=int, default=480)
     args = ap.parse_args()
 
-    setup_logging("INFO", "deskbot.vision")
+    setup_logging("INFO", "peekabot.vision")
     run(args.source, args.width, args.height, detect_width=args.detect_width)
 
 

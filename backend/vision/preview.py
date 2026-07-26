@@ -11,7 +11,7 @@ import logging
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-log = logging.getLogger("deskbot.vision.preview")
+log = logging.getLogger("peekabot.vision.preview")
 
 
 class FramePreview:

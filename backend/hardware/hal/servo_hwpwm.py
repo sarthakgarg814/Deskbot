@@ -18,7 +18,7 @@ import logging
 
 from .base import PanTilt
 
-log = logging.getLogger("deskbot.hw.servo")
+log = logging.getLogger("peekabot.hw.servo")
 
 # GPIO -> hardware PWM channel (BCM2711: 12/18 = ch0, 13/19 = ch1)
 _PIN_TO_CHANNEL = {12: 0, 13: 1, 18: 0, 19: 1}

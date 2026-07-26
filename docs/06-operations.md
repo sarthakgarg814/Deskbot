@@ -1,6 +1,6 @@
 # 06 — Operations Guide (as-built)
 
-How the running DeskBot is put together, how to deploy it, every tunable, and a
+How the running Peekabot is put together, how to deploy it, every tunable, and a
 troubleshooting playbook for the issues we actually hit. This is the "as-built"
 companion to the design docs (00–05).
 
@@ -11,9 +11,9 @@ coordinated over **Redis**:
 
 | Process | systemd unit | Owns | Talks via |
 |---------|-------------|------|-----------|
-| **core** | `deskbot-core` | FastAPI + WebSocket, SQLite (sole writer), scheduler, serves the dashboard | REST/WS to browser; publishes `cmd.*`, reads `state:*` |
-| **vision** | `deskbot-vision` | Pi camera, YuNet face detection, presence, MJPEG preview | publishes `cmd.servo.target`, `state:camera`, `presence` |
-| **hardware** | `deskbot-hardware` | the servos + OLED + buzzer (sole GPIO/I2C owner) — arbiter, hardware PWM, animated eyes | subscribes `cmd.servo.*` / `cmd.buzzer.beep`, publishes `state:servo`, `state:oled` |
+| **core** | `peekabot-core` | FastAPI + WebSocket, SQLite (sole writer), scheduler, serves the dashboard | REST/WS to browser; publishes `cmd.*`, reads `state:*` |
+| **vision** | `peekabot-vision` | Pi camera, YuNet face detection, presence, MJPEG preview | publishes `cmd.servo.target`, `state:camera`, `presence` |
+| **hardware** | `peekabot-hardware` | the servos + OLED + buzzer (sole GPIO/I2C owner) — arbiter, hardware PWM, animated eyes | subscribes `cmd.servo.*` / `cmd.buzzer.beep`, publishes `state:servo`, `state:oled` |
 | redis | `redis-server` | the bus + state cache | — |
 
 Design rules that matter operationally:
@@ -40,23 +40,23 @@ D10, D11).
 
 On Raspberry Pi OS **Trixie (64-bit)**, SSH in and:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sarthakgarg814/Deskbot/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sarthakgarg814/Peekabot/main/install.sh | bash
 ```
 `install.sh` is idempotent (re-run to update) and does the lot: apt deps, Redis,
-`picamera2`/OpenCV, gpiozero/lgpio, clones to `~/deskbot`, fetches the YuNet model,
+`picamera2`/OpenCV, gpiozero/lgpio, clones to `~/peekabot`, fetches the YuNet model,
 builds the dashboard (installs Node), creates the three service venvs
 (`.venv` / `.venv-vision` / `.venv-hardware`), writes `config/local.yaml`
 (`bus_backend: redis`, `hardware_backend: real`), adds the hardware-PWM overlay,
-and installs + starts the `deskbot-core` / `-vision` / `-hardware` systemd units.
+and installs + starts the `peekabot-core` / `-vision` / `-hardware` systemd units.
 Reboot once afterwards for the PWM overlay + camera. Then it's at
-`http://deskbot.local:8000` (login `deskbot`).
+`http://peekabot.local:8000` (login `peekabot`).
 
 ## Authentication
 
 The dashboard and every `/api/*` endpoint (and the `/ws` socket) are
 password-protected — single-user, meant for a personal device.
 
-- **Default password:** `deskbot`. Change it in the dashboard under **Account**
+- **Default password:** `peekabot`. Change it in the dashboard under **Account**
   (it stores a pbkdf2 hash in the `auth.password_hash` setting).
 - **Token:** login returns an HMAC-signed bearer token (30-day). The browser keeps
   it in `localStorage` and sends `Authorization: Bearer …`; the socket passes it
@@ -65,8 +65,8 @@ password-protected — single-user, meant for a personal device.
 - **Public endpoints** (no token): `GET /api/health`, `POST /api/auth/login`,
   `GET /api/auth/status`. Everything else 401s without a valid token.
 - Forgot the password? Delete the `auth.password_hash` row (or the whole DB — it's
-  a cache) to fall back to the `deskbot` default:
-  `sqlite3 ~/deskbot/deskbot.db "delete from settings where key='auth.password_hash'"`.
+  a cache) to fall back to the `peekabot` default:
+  `sqlite3 ~/peekabot/peekabot.db "delete from settings where key='auth.password_hash'"`.
 
 ## Wiring
 
@@ -109,20 +109,20 @@ Frontend is **built on the laptop** and rsynced (D5) — the Pi never runs npm.
 
 ```bash
 # One-time on the Pi (in order):
-./scripts/setup-pi.sh              # core: venv + deps + deskbot-core service
-./scripts/setup-vision-pi.sh       # redis + camera/opencv + deskbot-vision, flips bus->redis
-./scripts/setup-hardware-pi.sh     # gpiozero/lgpio + deskbot-hardware (mock servo)
+./scripts/setup-pi.sh              # core: venv + deps + peekabot-core service
+./scripts/setup-vision-pi.sh       # redis + camera/opencv + peekabot-vision, flips bus->redis
+./scripts/setup-hardware-pi.sh     # gpiozero/lgpio + peekabot-hardware (mock servo)
 ./scripts/setup-hardware-pi.sh --real   # once servos are wired: hardware PWM + real servo
 
 # Every change after that:
-./scripts/deploy-to-pi.sh deskbot@deskbot.local      # laptop: vite build + rsync
-ssh deskbot@deskbot.local 'sudo systemctl restart deskbot-core deskbot-vision deskbot-hardware'
+./scripts/deploy-to-pi.sh peekabot@peekabot.local      # laptop: vite build + rsync
+ssh peekabot@peekabot.local 'sudo systemctl restart peekabot-core peekabot-vision peekabot-hardware'
 ```
 
 The Pi runs an **editable install** (`pip install -e backend`), so a redeploy +
 service restart picks up code changes with no reinstall.
 
-Dashboard: **http://deskbot.local:8000**
+Dashboard: **http://peekabot.local:8000**
 
 ## Configuration model
 
@@ -255,15 +255,15 @@ laptop-based fallback. A meeting within `reminder_min` fires the buzzer + an OLE
 | Servo twitches erratically | loose signal/power jumper | Reseat the connector |
 | Tracking **hunts / never settles** | velocity control / lag | Fixed — position-step control (D10); if still, lower `track_gain` |
 | Preview enabled but no video | no `<img>` was on the page / stream on :8090 | Fixed — Camera page embeds the stream when preview on |
-| Dashboard dot red, "connecting…" | core error on the bus | `journalctl -u deskbot-core -n 30` |
+| Dashboard dot red, "connecting…" | core error on the bus | `journalctl -u peekabot-core -n 30` |
 
 ### Handy commands
 ```bash
-journalctl -u deskbot-hardware -f          # watch the arbiter
+journalctl -u peekabot-hardware -f          # watch the arbiter
 redis-cli get state:servo                  # current pan/tilt/owner
 redis-cli get state:servo.config           # gains the arbiter is using
 redis-cli get state:camera                 # fps / present / face err_x,err_y
-systemctl is-active deskbot-core deskbot-vision deskbot-hardware redis-server
+systemctl is-active peekabot-core peekabot-vision peekabot-hardware redis-server
 ```
 
 ## Status / roadmap

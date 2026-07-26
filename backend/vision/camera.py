@@ -16,7 +16,7 @@ from typing import Iterator, Protocol
 
 import numpy as np
 
-log = logging.getLogger("deskbot.vision.camera")
+log = logging.getLogger("peekabot.vision.camera")
 
 
 class CameraSource(Protocol):

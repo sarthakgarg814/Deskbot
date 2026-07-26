@@ -24,7 +24,7 @@ from common.logging import setup_logging
 from .arbiter import ArbiterConfig, Command, ServoArbiter
 from .hal import get_hardware
 
-log = logging.getLogger("deskbot.hw.service")
+log = logging.getLogger("peekabot.hw.service")
 
 CONTROL_HZ = 40
 STATE_PUB_HZ = 12
@@ -39,7 +39,7 @@ def _status_lines(pub) -> list[str]:
     cpu, temp = sysd.get("cpu_percent"), sysd.get("temp_c")
     have = isinstance(cpu, (int, float)) and isinstance(temp, (int, float))
     return [
-        time.strftime("DeskBot    %H:%M"),
+        time.strftime("Peekabot    %H:%M"),
         f"CPU {cpu:.0f}%  {temp:.0f}C" if have else "warming up...",
         f"Face: {'present' if cam.get('present') else 'away'}",
         f"Track {'ON' if cam.get('tracking', True) else 'off'}  {servo.get('owner', '')}",
@@ -216,7 +216,7 @@ def _subscriber_thread(sub, hw, commands: dict, lock: threading.Lock, pub) -> No
 
 def run() -> None:
     cfg = load_config()
-    setup_logging(cfg.log_level, "deskbot.hw")
+    setup_logging(cfg.log_level, "peekabot.hw")
     pub = make_publisher(cfg.bus_backend, cfg.redis_url)
     sub = make_subscriber(cfg.bus_backend, cfg.redis_url)
     hw = get_hardware(cfg.hardware_backend)

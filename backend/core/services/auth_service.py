@@ -1,5 +1,5 @@
 """Single-user password auth for the dashboard + API. Stdlib only (pbkdf2 hash,
-HMAC-signed bearer token). Default password is 'deskbot' until the user changes
+HMAC-signed bearer token). Default password is 'peekabot' until the user changes
 it (then a pbkdf2 hash is stored in settings). The signing secret lives in
 config/.session_secret (gitignored, per-machine).
 """
@@ -19,7 +19,7 @@ from common.db.models import Setting
 
 from .settings_service import get_value
 
-DEFAULT_PASSWORD = "deskbot"
+DEFAULT_PASSWORD = "peekabot"
 TOKEN_TTL = 30 * 24 * 3600            # 30 days
 _SECRET_PATH = REPO_ROOT / "config" / ".session_secret"
 _PBKDF2_ROUNDS = 200_000
@@ -78,7 +78,7 @@ def set_password(s: Session, new_pw: str) -> None:
 # --- token ---
 def make_token() -> str:
     exp = int(time.time()) + TOKEN_TTL
-    msg = f"deskbot:{exp}"
+    msg = f"peekabot:{exp}"
     sig = hmac.new(_secret(), msg.encode(), hashlib.sha256).hexdigest()
     return base64.urlsafe_b64encode(f"{msg}:{sig}".encode()).decode()
 

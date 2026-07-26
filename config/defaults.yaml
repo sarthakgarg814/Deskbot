@@ -1,4 +1,4 @@
-# DeskBot bootstrap + seed config.
+# Peekabot bootstrap + seed config.
 #
 # Two parts:
 #   runtime:  low-level config read BEFORE the DB exists (paths, ports, backend).
@@ -15,7 +15,7 @@ runtime:
   servo_tilt_pin: 13            # BCM GPIO for the tilt servo signal
   buzzer_pin: 16                # BCM GPIO for the reminder buzzer (active buzzer)
   touch_pin: 17                 # BCM GPIO for the capacitive touch sensor
-  db_path: deskbot.db           # relative to repo root
+  db_path: peekabot.db           # relative to repo root
   host: 0.0.0.0
   port: 8000
   log_level: INFO
@@ -26,7 +26,7 @@ runtime:
 settings:
   # --- system ---
   - { key: system.timezone,        value: "UTC",     type: str,   namespace: system }
-  - { key: system.hostname,        value: "deskbot", type: str,   namespace: system }
+  - { key: system.hostname,        value: "peekabot", type: str,   namespace: system }
 
   # --- camera / tracking (CPU knobs — editable live from the dashboard) ---
   - { key: camera.tracking_mode,   value: "smooth",  type: str,   namespace: camera }
@@ -59,7 +59,7 @@ settings:
   - { key: led.count,              value: 8,         type: int,   namespace: led }
 
   # --- voice ---
-  - { key: voice.wake_word,        value: "deskbot", type: str,   namespace: voice }
+  - { key: voice.wake_word,        value: "peekabot", type: str,   namespace: voice }
   - { key: voice.language,         value: "en",      type: str,   namespace: voice }
   - { key: voice.confidence_min,   value: 0.6,       type: float, namespace: voice }
 

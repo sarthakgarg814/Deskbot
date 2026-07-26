@@ -12,7 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from common.bus import Bus
 from hardware.hal.base import HardwareMonitor
 
-log = logging.getLogger("deskbot.scheduler")
+log = logging.getLogger("peekabot.scheduler")
 
 
 class Scheduler:

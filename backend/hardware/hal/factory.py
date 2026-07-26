@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from .base import Buzzer, HardwareMonitor, LedStrip, OledDisplay, ServoController
 from .monitor import RealMonitor
 
-log = logging.getLogger("deskbot.hw")
+log = logging.getLogger("peekabot.hw")
 
 
 @dataclass

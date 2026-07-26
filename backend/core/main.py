@@ -1,4 +1,4 @@
-"""DeskBot core — FastAPI app factory + lifespan.
+"""Peekabot core — FastAPI app factory + lifespan.
 
 Boot order: config -> DB (init + seed) -> hardware backend -> bus -> ws hub ->
 scheduler. Serves the REST API, the `/ws` live stream, and (if present) the
@@ -36,8 +36,8 @@ from .ws import WsHub
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     cfg = load_config()
-    log = setup_logging(cfg.log_level, "deskbot.core")
-    log.info("starting DeskBot core — hardware backend: %s", cfg.hardware_backend)
+    log = setup_logging(cfg.log_level, "peekabot.core")
+    log.info("starting Peekabot core — hardware backend: %s", cfg.hardware_backend)
 
     init_db(cfg.db_path)
     seed(cfg.seed_settings)
@@ -118,7 +118,7 @@ async def _mirror_vision_config(app: FastAPI) -> None:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="DeskBot AI", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Peekabot AI", version="0.1.0", lifespan=lifespan)
 
     # Dev convenience: the Vite dev server (5173) calls the API cross-origin.
     app.add_middleware(
@@ -133,7 +133,7 @@ def create_app() -> FastAPI:
         p = request.url.path
         if p.startswith("/api/") and p not in PUBLIC_PATHS:
             hdr = request.headers.get("authorization", "")
-            token = hdr[7:] if hdr[:7].lower() == "bearer " else request.cookies.get("deskbot_token")
+            token = hdr[7:] if hdr[:7].lower() == "bearer " else request.cookies.get("peekabot_token")
             if not auth_service.verify_token(token):
                 return JSONResponse(status_code=401, content={"detail": "unauthorized"})
         return await call_next(request)

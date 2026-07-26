@@ -7,7 +7,7 @@
 2. Run:  python scripts/google-auth.py
    → a browser opens; approve read-only Calendar access.
 3. It writes config/google/token.json. Then:  ./scripts/deploy-to-pi.sh …
-   copies config/google/ to the Pi. Restart deskbot-core and it syncs.
+   copies config/google/ to the Pi. Restart peekabot-core and it syncs.
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def main() -> None:
     (GDIR / "token.json").write_text(creds.to_json())
     print(f"\n✓ wrote {GDIR / 'token.json'}")
     print("Now: enable calendar in the dashboard, run ./scripts/deploy-to-pi.sh, "
-          "and `sudo systemctl restart deskbot-core` on the Pi.")
+          "and `sudo systemctl restart peekabot-core` on the Pi.")
 
 
 if __name__ == "__main__":

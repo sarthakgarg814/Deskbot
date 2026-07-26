@@ -1,4 +1,4 @@
-# DeskBot dev commands. Backend runs anywhere (mock hardware); the Pi installs
+# Peekabot dev commands. Backend runs anywhere (mock hardware); the Pi installs
 # the extra `.[pi]` deps and flips config/defaults.yaml -> hardware_backend: real.
 
 BACKEND := backend
@@ -39,5 +39,5 @@ frontend-build:
 run: frontend-build backend
 
 clean:
-	rm -f deskbot.db*
+	rm -f peekabot.db*
 	rm -rf frontend/dist

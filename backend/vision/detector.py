@@ -13,7 +13,7 @@ from typing import Protocol
 
 import numpy as np
 
-log = logging.getLogger("deskbot.vision.detector")
+log = logging.getLogger("peekabot.vision.detector")
 
 # Repo-root/models/… (models/ is gitignored; fetched by scripts/fetch-models.sh)
 MODELS_DIR = Path(__file__).resolve().parents[2] / "models"

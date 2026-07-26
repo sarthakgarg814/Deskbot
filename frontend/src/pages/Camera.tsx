@@ -86,7 +86,7 @@ export default function Camera() {
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 text-sm text-neutral-400">
           Vision service offline — no camera status is being published.
           <div className="mt-1 text-xs text-neutral-600">
-            Start it on the Pi: <code>systemctl start deskbot-vision</code>
+            Start it on the Pi: <code>systemctl start peekabot-vision</code>
           </div>
         </div>
       ) : (

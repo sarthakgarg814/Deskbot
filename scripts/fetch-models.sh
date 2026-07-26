@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Download the ML model files DeskBot needs into models/ (gitignored).
+# Download the ML model files Peekabot needs into models/ (gitignored).
 # Run on whichever machine will run the vision service (the Pi, and/or your Mac
 # for local detector testing).
 set -euo pipefail

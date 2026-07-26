@@ -10,7 +10,7 @@ import logging
 
 from .base import PanTilt
 
-log = logging.getLogger("deskbot.hw.servo")
+log = logging.getLogger("peekabot.hw.servo")
 
 
 class RealServo:

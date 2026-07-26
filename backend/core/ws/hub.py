@@ -14,7 +14,7 @@ from fastapi import WebSocket
 
 from common.bus import Bus
 
-log = logging.getLogger("deskbot.ws")
+log = logging.getLogger("peekabot.ws")
 
 # Topics forwarded to browsers. More get added as services come online.
 FORWARDED_TOPICS = ("system", "notes", "settings", "hardware", "camera", "presence",

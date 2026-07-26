@@ -31,7 +31,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
       <div className="w-full max-w-xs">
         <div className="flex items-center justify-center gap-2 mb-6">
           <span className="text-2xl">🤖</span>
-          <span className="text-lg font-semibold tracking-tight">DeskBot</span>
+          <span className="text-lg font-semibold tracking-tight">Peekabot</span>
         </div>
         <input
           type="password"
@@ -52,7 +52,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
         {err && <div className="mt-3 text-sm text-led-error text-center">{err}</div>}
         {isDefault && (
           <div className="mt-4 text-xs text-neutral-500 text-center">
-            Default password is <code className="text-neutral-300">deskbot</code> — change it in
+            Default password is <code className="text-neutral-300">peekabot</code> — change it in
             Settings after signing in.
           </div>
         )}

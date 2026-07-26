@@ -24,25 +24,25 @@ def test_guarded_endpoint_requires_token(app_client):
 
 def test_login_and_access(app_client):
     assert app_client.post("/api/auth/login", json={"password": "nope"}).status_code == 401
-    tok = app_client.post("/api/auth/login", json={"password": "deskbot"}).json()["token"]
+    tok = app_client.post("/api/auth/login", json={"password": "peekabot"}).json()["token"]
     h = {"Authorization": f"Bearer {tok}"}
     assert app_client.get("/api/system", headers=h).status_code == 200
 
 
 def test_change_password(app_client):
-    tok = app_client.post("/api/auth/login", json={"password": "deskbot"}).json()["token"]
+    tok = app_client.post("/api/auth/login", json={"password": "peekabot"}).json()["token"]
     h = {"Authorization": f"Bearer {tok}"}
     # wrong current password rejected
     assert app_client.post("/api/auth/change",
                            json={"old_password": "x", "new_password": "abcd"}, headers=h).status_code == 400
     # change it
     assert app_client.post("/api/auth/change",
-                           json={"old_password": "deskbot", "new_password": "s3cret"}, headers=h).status_code == 200
+                           json={"old_password": "peekabot", "new_password": "s3cret"}, headers=h).status_code == 200
     # old password no longer works, new one does
-    assert app_client.post("/api/auth/login", json={"password": "deskbot"}).status_code == 401
+    assert app_client.post("/api/auth/login", json={"password": "peekabot"}).status_code == 401
     tok2 = app_client.post("/api/auth/login", json={"password": "s3cret"}).json()["token"]
     assert tok2
     # restore the default so other tests sharing the repo DB still authenticate
     app_client.post("/api/auth/change",
-                    json={"old_password": "s3cret", "new_password": "deskbot"},
+                    json={"old_password": "s3cret", "new_password": "peekabot"},
                     headers={"Authorization": f"Bearer {tok2}"})

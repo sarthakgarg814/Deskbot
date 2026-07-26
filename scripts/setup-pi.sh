@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Provision & run DeskBot Milestone 1 on a Raspberry Pi (OS Trixie / Debian 13).
+# Provision & run Peekabot Milestone 1 on a Raspberry Pi (OS Trixie / Debian 13).
 # RUN ON THE PI, after the repo has been copied over (see deploy-to-pi.sh).
 #
 # Milestone 1 uses the MOCK hardware backend, so this installs only the base
@@ -12,7 +12,7 @@ RUN_USER="$(id -un)"
 VENV="$REPO_DIR/backend/.venv"
 PY="$VENV/bin/python"
 
-echo "==> DeskBot repo : $REPO_DIR"
+echo "==> Peekabot repo : $REPO_DIR"
 echo "==> service user : $RUN_USER"
 
 echo "==> apt deps (base tooling)"
@@ -32,10 +32,10 @@ fi
 echo "==> smoke test"
 ( cd "$REPO_DIR/backend" && "$PY" -m pytest -q ) || echo "!! tests failed (continuing to install service)"
 
-echo "==> installing systemd unit: deskbot-core.service"
-sudo tee /etc/systemd/system/deskbot-core.service >/dev/null <<UNIT
+echo "==> installing systemd unit: peekabot-core.service"
+sudo tee /etc/systemd/system/peekabot-core.service >/dev/null <<UNIT
 [Unit]
-Description=DeskBot core (FastAPI API + dashboard)
+Description=Peekabot core (FastAPI API + dashboard)
 After=network-online.target
 Wants=network-online.target
 
@@ -52,16 +52,16 @@ WantedBy=multi-user.target
 UNIT
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now deskbot-core.service
+sudo systemctl enable --now peekabot-core.service
 sleep 2
-sudo systemctl --no-pager --lines=0 status deskbot-core.service || true
+sudo systemctl --no-pager --lines=0 status peekabot-core.service || true
 
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 cat <<EOF
 
-==> DeskBot core is running as a service.
-    Dashboard:  http://deskbot.local:8000
+==> Peekabot core is running as a service.
+    Dashboard:  http://peekabot.local:8000
                 http://${IP:-<pi-ip>}:8000
-    Logs:       journalctl -u deskbot-core -f
-    Restart:    sudo systemctl restart deskbot-core
+    Logs:       journalctl -u peekabot-core -f
+    Restart:    sudo systemctl restart peekabot-core
 EOF

@@ -52,7 +52,7 @@ export default function Water() {
     <div className="max-w-xl">
       <h1 className="text-lg font-semibold mb-1">Water reminder</h1>
       <p className="text-sm text-neutral-500 mb-5">
-        A timed nudge to hydrate — fired only when you're actually in front of DeskBot.
+        A timed nudge to hydrate — fired only when you're actually in front of Peekabot.
       </p>
 
       {/* today */}

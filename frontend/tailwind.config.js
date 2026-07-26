@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // DeskBot LED palette (docs §I) reused for status accents
+        // Peekabot LED palette (docs §I) reused for status accents
         led: {
           idle: "#3b82f6",
           working: "#22c55e",

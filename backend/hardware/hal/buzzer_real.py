@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import time
 
-log = logging.getLogger("deskbot.hw.buzzer")
+log = logging.getLogger("peekabot.hw.buzzer")
 
 
 class RealBuzzer:

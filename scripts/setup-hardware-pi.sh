@@ -62,10 +62,10 @@ PY
   fi
 fi
 
-echo "==> systemd unit: deskbot-hardware.service"
-sudo tee /etc/systemd/system/deskbot-hardware.service >/dev/null <<UNIT
+echo "==> systemd unit: peekabot-hardware.service"
+sudo tee /etc/systemd/system/peekabot-hardware.service >/dev/null <<UNIT
 [Unit]
-Description=DeskBot hardware (servo arbiter + PID)
+Description=Peekabot hardware (servo arbiter + PID)
 After=network-online.target redis-server.service
 Wants=redis-server.service
 
@@ -82,16 +82,16 @@ WantedBy=multi-user.target
 UNIT
 
 sudo systemctl daemon-reload
-sudo systemctl enable deskbot-hardware.service
-sudo systemctl restart deskbot-hardware.service   # restart (enable --now no-ops if already running)
-sudo systemctl restart deskbot-core.service       # pick up config/topic changes
+sudo systemctl enable peekabot-hardware.service
+sudo systemctl restart peekabot-hardware.service   # restart (enable --now no-ops if already running)
+sudo systemctl restart peekabot-core.service       # pick up config/topic changes
 sleep 2
-sudo systemctl --no-pager --lines=0 status deskbot-hardware.service || true
+sudo systemctl --no-pager --lines=0 status peekabot-hardware.service || true
 
 cat <<EOF
 
 ==> Hardware service enabled ($([ "$REAL" = 1 ] && echo "REAL servos, hardware PWM" || echo "mock — no wiring needed yet")).
-    Watch the arbiter:  journalctl -u deskbot-hardware -f
+    Watch the arbiter:  journalctl -u peekabot-hardware -f
     Dashboard Hardware page shows live pan/tilt; move your face and the
     'driver: face_tracking' position should track it.
     When servos are wired to GPIO 12/13:  ./scripts/setup-hardware-pi.sh --real

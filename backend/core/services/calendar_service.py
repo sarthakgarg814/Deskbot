@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from common.config import load_config
 from common.db.models import CalendarEvent
 
-log = logging.getLogger("deskbot.calendar")
+log = logging.getLogger("peekabot.calendar")
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 
@@ -111,7 +111,7 @@ def config(s: Session) -> dict:
 
 
 def calendars(s: Session) -> list[dict]:
-    """List the account's calendars + whether each is included in DeskBot."""
+    """List the account's calendars + whether each is included in Peekabot."""
     creds = _credentials()
     if creds is None:
         return []

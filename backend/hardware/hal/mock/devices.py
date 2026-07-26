@@ -5,7 +5,7 @@ import logging
 
 from ..base import PanTilt
 
-log = logging.getLogger("deskbot.hw.mock")
+log = logging.getLogger("peekabot.hw.mock")
 
 
 class MockServo:
@@ -53,7 +53,7 @@ class MockBuzzer:
 
 class MockOled:
     def __init__(self) -> None:
-        self._lines: list[str] = ["DeskBot", "ready"]
+        self._lines: list[str] = ["Peekabot", "ready"]
 
     def show_text(self, lines: list[str]) -> None:
         self._lines = list(lines)

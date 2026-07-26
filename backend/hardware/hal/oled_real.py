@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 
-log = logging.getLogger("deskbot.hw.oled")
+log = logging.getLogger("peekabot.hw.oled")
 
 LINE_H = 11   # px per line → ~5-6 lines on a 64px panel
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Enable the vision service on the Pi (Milestone 2b): Redis bus + camera/opencv
-# system packages + a vision venv + the deskbot-vision systemd service, and flip
+# system packages + a vision venv + the peekabot-vision systemd service, and flip
 # core over to the Redis bus. RUN ON THE PI after ./scripts/setup-pi.sh.
 set -euo pipefail
 
@@ -43,10 +43,10 @@ from common.bus import make_publisher
 print("vision imports OK — opencv", cv2.__version__)
 PY
 
-echo "==> systemd unit: deskbot-vision.service"
-sudo tee /etc/systemd/system/deskbot-vision.service >/dev/null <<UNIT
+echo "==> systemd unit: peekabot-vision.service"
+sudo tee /etc/systemd/system/peekabot-vision.service >/dev/null <<UNIT
 [Unit]
-Description=DeskBot vision (camera + face detection)
+Description=Peekabot vision (camera + face detection)
 After=network-online.target redis-server.service
 Wants=redis-server.service
 
@@ -63,16 +63,16 @@ WantedBy=multi-user.target
 UNIT
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now deskbot-vision.service
+sudo systemctl enable --now peekabot-vision.service
 echo "==> restarting core so it picks up the Redis bus"
-sudo systemctl restart deskbot-core.service
+sudo systemctl restart peekabot-core.service
 sleep 2
-sudo systemctl --no-pager --lines=0 status deskbot-vision.service || true
+sudo systemctl --no-pager --lines=0 status peekabot-vision.service || true
 
 cat <<EOF
 
 ==> Vision service enabled.
-    Dashboard Camera page:  http://deskbot.local:8000/camera
-    Vision logs:  journalctl -u deskbot-vision -f
-    Core logs:    journalctl -u deskbot-core -f
+    Dashboard Camera page:  http://peekabot.local:8000/camera
+    Vision logs:  journalctl -u peekabot-vision -f
+    Core logs:    journalctl -u peekabot-core -f
 EOF

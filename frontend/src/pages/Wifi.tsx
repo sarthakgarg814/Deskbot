@@ -143,7 +143,7 @@ export default function Wifi() {
       <p className="text-xs text-neutral-600">
         ⚠️ Switching to a different network will disconnect the Pi from the current
         one — you may lose access to this dashboard until you reconnect on the new
-        network (the Pi's IP / <code>deskbot.local</code> may change).
+        network (the Pi's IP / <code>peekabot.local</code> may change).
       </p>
     </div>
   );

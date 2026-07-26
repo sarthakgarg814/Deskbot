@@ -3,7 +3,7 @@
 ## System diagram
 
 ```
-                          Browser  →  http://deskbot.local
+                          Browser  →  http://peekabot.local
                                           │  (static React, WS)
                                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -115,16 +115,16 @@ ship in `config/defaults.yaml` for first boot / factory reset.
 Four units (+ redis) in `config/systemd/`:
 
 ```
-deskbot-redis.service      (or system redis-server)
-deskbot-core.service       After=redis, network-online
-deskbot-hardware.service   After=redis         (may need User=root for LEDs)
-deskbot-vision.service     After=redis
-deskbot-voice.service      After=redis
-deskbot.target             wants all of the above
+peekabot-redis.service      (or system redis-server)
+peekabot-core.service       After=redis, network-online
+peekabot-hardware.service   After=redis         (may need User=root for LEDs)
+peekabot-vision.service     After=redis
+peekabot-voice.service      After=redis
+peekabot.target             wants all of the above
 ```
 
 - `pigpiod` must run for jitter-free servo PWM (enable its service).
-- mDNS via `avahi-daemon` publishes `deskbot.local`.
+- mDNS via `avahi-daemon` publishes `peekabot.local`.
 - Boot target `<30s`: services start in parallel; `core` serves a "warming up"
   page until vision/hardware report ready over the bus.
 - Watchdog: `core` tracks per-service heartbeats on `state:heartbeat:*`; a missed

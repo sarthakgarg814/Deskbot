@@ -74,7 +74,7 @@ data model in one place.
 | D2 | Servo arbiter in `hardware`, vision publishes targets | Proposed | Vision drives servos directly |
 | D3 | Redis internal bus + state cache — **in-process bus for M1, Redis when vision lands** | **Accepted** | MQTT; ZeroMQ; SQLite polling |
 | D4 | Single SQLite writer (`core`) | Proposed | Multi-writer WAL; Postgres |
-| D5 | Frontend built static, served by `core` at `deskbot.local` — **built on laptop, copied to Pi** | **Accepted** | Build on Pi; separate node server |
+| D5 | Frontend built static, served by `core` at `peekabot.local` — **built on laptop, copied to Pi** | **Accepted** | Build on Pi; separate node server |
 | D6 | **Servos on GPIO pins, driven by `lgpio`** (gpiozero `AngularServo`, Trixie's native backend). pigpio was removed in Trixie. PCA9685 I2C board kept as a drop-in fallback behind the same HAL interface if software-PWM jitter proves too much. | **Accepted** | pigpio from source (fragile); PCA9685 board |
 | D7 | Config lives in DB `settings`, mirrored to `config/*.yaml` defaults | Proposed | Pure file config |
 | D8 | **Scope: drop water tracking + drop local LLM; add mood detection** (FER model on the face crop, label-only storage) | **Accepted** | Keep water; local LLM; MediaPipe blendshapes as primary |

@@ -35,7 +35,7 @@ export default function Layout() {
       <header className="border-b border-neutral-800 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xl">🤖</span>
-          <span className="font-semibold tracking-tight">DeskBot</span>
+          <span className="font-semibold tracking-tight">Peekabot</span>
           <span className="text-xs text-neutral-500">AI desktop companion</span>
         </div>
         <div className="flex items-center gap-2 text-xs">

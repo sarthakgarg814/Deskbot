@@ -15,13 +15,13 @@ frontend/dist/
 .vite/
 *.local
 
-# --- DeskBot runtime artifacts ---
+# --- Peekabot runtime artifacts ---
 logs/
 *.log
 *.sqlite
 *.sqlite3
 *.db
-deskbot.db*
+peekabot.db*
 
 # --- AI models (downloaded, not committed) ---
 models/*
