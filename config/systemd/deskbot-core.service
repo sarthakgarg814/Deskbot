@@ -1,0 +1,18 @@
+# Reference template. scripts/setup-pi.sh generates the REAL unit with your
+# actual user + repo path filled in — prefer running that over copying this by
+# hand. Placeholders below: {{USER}}, {{REPO}}.
+[Unit]
+Description=DeskBot core (FastAPI API + dashboard)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{USER}}
+WorkingDirectory={{REPO}}/backend
+ExecStart={{REPO}}/backend/.venv/bin/uvicorn core.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

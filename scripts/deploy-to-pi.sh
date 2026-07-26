@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Build the dashboard and copy DeskBot to the Raspberry Pi. RUN ON YOUR LAPTOP.
+#
+#   scripts/deploy-to-pi.sh [user@host]      (default: deskbot@deskbot.local)
+#
+# Builds frontend/dist locally (design decision D5 — never build on the Pi),
+# then rsyncs the working tree (including the built dist) to ~/deskbot on the Pi.
+# First time, follow up on the Pi with ./scripts/setup-pi.sh. After that, just
+# re-run this and `sudo systemctl restart deskbot-core`.
+set -euo pipefail
+
+PI_HOST="${1:-deskbot@deskbot.local}"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEST="deskbot"   # lands at ~/deskbot on the Pi
+
+echo "==> building dashboard (vite build)"
+( cd "$REPO_DIR/frontend" && npm run build )
+
+echo "==> rsync -> $PI_HOST:~/$DEST/"
+rsync -az --delete \
+  --exclude '.git/' \
+  --exclude 'backend/.venv/' \
+  --exclude 'frontend/node_modules/' \
+  --exclude '__pycache__/' \
+  --exclude '*.pyc' \
+  --exclude 'deskbot.db*' \
+  "$REPO_DIR/" "$PI_HOST:~/$DEST/"
+
+cat <<EOF
+
+==> Copied to $PI_HOST:~/$DEST
+    First time:   ssh $PI_HOST 'cd ~/$DEST && ./scripts/setup-pi.sh'
+    Later deploys: re-run this script, then:
+                   ssh $PI_HOST 'sudo systemctl restart deskbot-core'
+EOF
