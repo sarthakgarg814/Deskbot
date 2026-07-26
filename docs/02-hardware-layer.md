@@ -56,7 +56,7 @@ class Camera(Protocol):                    # used by the vision process
 
 | Device | Library | Notes / risk |
 |--------|---------|--------------|
-| Servos (pan/tilt) | **`PCA9685` I2C (recommended)** or `gpiozero` on the `lgpio` backend | **pigpio is removed from Raspberry Pi OS Trixie (Debian 13)** — D6 superseded. PCA9685 does jitter-free hardware PWM over I2C and offloads the CPU. lgpio (Trixie default) is the no-extra-hardware fallback but software PWM can jitter. **Open Q2 → confirm which board you have.** |
+| Servos (pan/tilt) | **`gpiozero` `AngularServo` on the `lgpio` backend** (chosen — direct GPIO wiring) | pigpio removed in Trixie; lgpio is the native backend. Software PWM can jitter under load — mitigate with the arbiter's slew-limit + dead-zone, and lower servo update rate if needed. PCA9685 I2C board is a drop-in fallback behind the same interface if jitter is unacceptable. |
 | OLED 0.96" I2C | `luma.oled` (SSD1306) | I2C addr usually `0x3C`. Render off-thread, push framebuffer. |
 | NeoPixel WS2812B | `rpi_ws281x` (or `adafruit-circuitpython-neopixel`) | Needs root **or** SPI/DMA. Drives on GPIO18 (PWM0) typically. **Open Q3** — decides if `hardware` runs as root. |
 | Touch sensor | `gpiozero` Button / capacitive breakout | Debounce + press-duration classification for tap/double/long/vlong. |
