@@ -45,6 +45,7 @@ def _config_from_state(vc: dict | None, base: ArbiterConfig) -> ArbiterConfig:
         tilt_offset=float(g.get("tilt_offset", base.tilt_offset)),
         pan_invert=bool(g.get("pan_invert", base.pan_invert)),
         tilt_invert=bool(g.get("tilt_invert", base.tilt_invert)),
+        recenter_after_s=float(g.get("recenter_after_s", base.recenter_after_s)),
     )
 
 

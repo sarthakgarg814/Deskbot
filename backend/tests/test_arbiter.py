@@ -69,6 +69,17 @@ def test_offset_applied_to_output():
     assert pan == 5.0
 
 
+def test_recenter_home_when_idle():
+    arb = ServoArbiter(_cfg(recenter_after_s=1.0))
+    arb.pan, arb.tilt = 30.0, 20.0
+    arb.owner = "face_tracking"                       # pretend it was tracking
+    arb.update({}, now=10.0, dt=0.1)                  # -> idle, idle_since=10
+    p, _ = arb.update({}, now=10.5, dt=0.1)           # within grace: holds
+    assert p == 30.0
+    p, t = arb.update({}, now=11.2, dt=0.1)           # past grace: drift home
+    assert p < 30.0 and t < 20.0
+
+
 def test_limit_clamps_angle():
     arb = ServoArbiter(_cfg(limit_deg=10.0))
     cmds = {"manual_test": Command("angle", 90.0, 0.0, expires_at=100.0)}

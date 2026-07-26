@@ -86,6 +86,7 @@ async def _mirror_vision_config(app: FastAPI) -> None:
             "tilt_offset": float(get_value(s, "servo.tilt.offset_deg", 0)),
             "pan_invert": bool(get_value(s, "servo.pan.invert", False)),
             "tilt_invert": bool(get_value(s, "servo.tilt.invert", False)),
+            "recenter_after_s": float(get_value(s, "servo.recenter_after_s", 3.0)),
         }
 
     async def mirror():

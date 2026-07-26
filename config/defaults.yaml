@@ -44,6 +44,7 @@ settings:
   - { key: servo.limit_deg,        value: 80,        type: int,   namespace: servo }  # ± max angle
   - { key: servo.max_speed,        value: 120,       type: int,   namespace: servo }  # deg/sec
   - { key: servo.deadzone,         value: 0.04,      type: float, namespace: servo }  # ignore tiny error
+  - { key: servo.recenter_after_s, value: 3.0,       type: float, namespace: servo }  # face lost this long -> home
   - { key: servo.pid.pan.kp,       value: 100.0,     type: float, namespace: servo }  # deg/sec at |error|=1
   - { key: servo.pid.pan.ki,       value: 0.0,       type: float, namespace: servo }
   - { key: servo.pid.pan.kd,       value: 0.0,       type: float, namespace: servo }

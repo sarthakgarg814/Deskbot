@@ -57,6 +57,7 @@ class ArbiterConfig:
     tilt_offset: float = 0.0
     pan_invert: bool = False
     tilt_invert: bool = False
+    recenter_after_s: float = 3.0    # idle this long (face lost) → drift home
 
 
 class ServoArbiter:
@@ -65,6 +66,7 @@ class ServoArbiter:
         self.pan = 0.0             # current commanded angle (pre-offset)
         self.tilt = 0.0
         self.owner = "idle"
+        self._idle_since: float | None = None
         self._pan_pid = PID(self.cfg.kp, self.cfg.ki, self.cfg.kd)
         self._tilt_pid = PID(self.cfg.kp, self.cfg.ki, self.cfg.kd)
 
@@ -102,9 +104,14 @@ class ServoArbiter:
             self._pan_pid.reset()
             self._tilt_pid.reset()
             self.owner = owner
+            self._idle_since = now if owner == "idle" else None
 
         if cmd is None:
-            pass  # idle → hold current angle
+            # idle → hold, then drift back to home (0,0) once the face has been
+            # gone for recenter_after_s (design: return-to-home when away)
+            if self._idle_since is not None and (now - self._idle_since) >= self.cfg.recenter_after_s:
+                self.pan = self._slew(self.pan, 0.0, dt)
+                self.tilt = self._slew(self.tilt, 0.0, dt)
         elif cmd.mode == "angle":
             self.pan = self._slew(self.pan, self._clamp(cmd.pan), dt)
             self.tilt = self._slew(self.tilt, self._clamp(cmd.tilt), dt)
