@@ -28,16 +28,22 @@ class PiCamera2Source:
     """Pi Camera via picamera2 (Pi only). picamera2 is a system package — the
     vision venv must be created with --system-site-packages to import it."""
 
-    def __init__(self, width: int = 640, height: int = 480) -> None:
+    def __init__(self, width: int = 640, height: int = 480, fps: int | None = None) -> None:
         from picamera2 import Picamera2  # imported lazily; Pi-only
 
         self._cam = Picamera2()
+        # Cap the sensor frame rate so the ISP isn't doing 30–60 fps of work when
+        # we only process ~10 — a meaningful CPU saving on the Pi.
+        controls = {}
+        if fps:
+            dur = int(1_000_000 / fps)  # microseconds per frame
+            controls["FrameDurationLimits"] = (dur, dur)
         cfg = self._cam.create_video_configuration(
-            main={"size": (width, height), "format": "RGB888"}
+            main={"size": (width, height), "format": "RGB888"}, controls=controls
         )
         self._cam.configure(cfg)
         self._cam.start()
-        log.info("picamera2 started @ %dx%d", width, height)
+        log.info("picamera2 started @ %dx%d%s", width, height, f" (cap {fps}fps)" if fps else "")
 
     def frames(self) -> Iterator[np.ndarray]:
         import cv2
@@ -56,7 +62,8 @@ class PiCamera2Source:
 class OpenCVSource:
     """Webcam index (0,1,…) or a path to a video/image file. Laptop/dev + USB."""
 
-    def __init__(self, source: int | str = 0, width: int = 640, height: int = 480) -> None:
+    def __init__(self, source: int | str = 0, width: int = 640, height: int = 480,
+                 **_: object) -> None:  # ignore extras (e.g. fps) it doesn't use
         import cv2
 
         self._is_image = isinstance(source, str) and source.lower().endswith(
@@ -94,7 +101,7 @@ def open_camera(backend: str = "auto", **kw) -> CameraSource:
     """backend: 'auto' | 'picamera2' | 'opencv'. 'auto' prefers picamera2."""
     if backend in ("auto", "picamera2"):
         try:
-            return PiCamera2Source(**{k: v for k, v in kw.items() if k in ("width", "height")})
+            return PiCamera2Source(**{k: v for k, v in kw.items() if k in ("width", "height", "fps")})
         except Exception as e:  # noqa: BLE001
             if backend == "picamera2":
                 raise

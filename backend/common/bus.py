@@ -100,9 +100,11 @@ class RedisBus:
 
 
 class Publisher(Protocol):
-    """Sync producer interface for standalone services (vision, hardware)."""
+    """Sync producer interface for standalone services (vision, hardware).
+    Also exposes get_state so producers can read gate flags core mirrors."""
     def publish(self, topic: str, payload: dict[str, Any]) -> None: ...
     def set_state(self, key: str, value: Any, ttl: float | None = None) -> None: ...
+    def get_state(self, key: str) -> Any | None: ...
 
 
 class RedisPublisher:
@@ -119,6 +121,10 @@ class RedisPublisher:
     def set_state(self, key: str, value: Any, ttl: float | None = None) -> None:
         self._r.set(key, json.dumps(value), ex=int(ttl) if ttl else None)
 
+    def get_state(self, key: str) -> Any | None:
+        v = self._r.get(key)
+        return json.loads(v) if v is not None else None
+
 
 class LogPublisher:
     """No-op producer that just logs — for laptop dev without Redis."""
@@ -133,6 +139,9 @@ class LogPublisher:
 
     def set_state(self, key: str, value: Any, ttl: float | None = None) -> None:
         self._log.debug("set_state %s %s", key, value)
+
+    def get_state(self, key: str) -> Any | None:
+        return None
 
 
 def make_bus(backend: str = "inprocess", url: str = "redis://localhost:6379/0") -> Bus:

@@ -8,6 +8,7 @@ Run (from backend/):  uvicorn core.main:app --reload --port 8000
 """
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -45,13 +46,31 @@ async def lifespan(app: FastAPI):
 
     await app.state.ws_hub.start()
     app.state.scheduler.start()
+    mirror_task = asyncio.create_task(_mirror_preview_flag(app))
     log.info("core ready on %s:%s", cfg.host, cfg.port)
     try:
         yield
     finally:
+        mirror_task.cancel()
         app.state.scheduler.shutdown()
         await app.state.ws_hub.stop()
         log.info("core stopped")
+
+
+async def _mirror_preview_flag(app: FastAPI) -> None:
+    """Mirror the `camera.preview_enabled` setting into a bus state key the vision
+    service reads to gate its MJPEG preview. Re-mirrors whenever settings change."""
+    from common.db import session_scope
+    from core.services.settings_service import get_value
+
+    def read() -> bool:
+        with session_scope() as s:
+            return bool(get_value(s, "camera.preview_enabled", False))
+
+    bus = app.state.bus
+    await bus.set_state("state:camera.preview_enabled", {"enabled": read()})
+    async for _ in bus.subscribe("settings"):
+        await bus.set_state("state:camera.preview_enabled", {"enabled": read()})
 
 
 def create_app() -> FastAPI:

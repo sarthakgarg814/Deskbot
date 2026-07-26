@@ -26,6 +26,11 @@ class RuntimeConfig:
     hardware_backend: str = "mock"          # mock | real
     bus_backend: str = "inprocess"          # inprocess | redis
     redis_url: str = "redis://localhost:6379/0"
+    preview_port: int = 8090
+    # vision CPU knobs — cap processing rate (present vs away) and detection size
+    vision_track_fps: int = 10
+    vision_idle_fps: int = 2
+    vision_detect_width: int = 256
     db_path: Path = REPO_ROOT / "deskbot.db"
     host: str = "0.0.0.0"
     port: int = 8000
@@ -53,6 +58,10 @@ def load_config(path: Path | None = None) -> RuntimeConfig:
         hardware_backend=rt.get("hardware_backend", "mock"),
         bus_backend=rt.get("bus_backend", "inprocess"),
         redis_url=rt.get("redis_url", "redis://localhost:6379/0"),
+        preview_port=int(rt.get("preview_port", 8090)),
+        vision_track_fps=int(rt.get("vision_track_fps", 10)),
+        vision_idle_fps=int(rt.get("vision_idle_fps", 2)),
+        vision_detect_width=int(rt.get("vision_detect_width", 256)),
         db_path=_resolve(REPO_ROOT, rt.get("db_path", "deskbot.db")),
         host=rt.get("host", "0.0.0.0"),
         port=int(rt.get("port", 8000)),

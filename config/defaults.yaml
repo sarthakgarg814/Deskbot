@@ -10,6 +10,12 @@ runtime:
   hardware_backend: mock        # mock | real   (Milestone 1 = mock; the Pi uses real)
   bus_backend: inprocess        # inprocess | redis  (laptop=inprocess; Pi w/ vision=redis)
   redis_url: redis://localhost:6379/0
+  preview_port: 8090            # vision MJPEG preview port (only streams when enabled)
+  # vision CPU knobs: processing rate when present vs away, and detection size.
+  # Lower = less CPU. 10 fps present is smooth for face-follow; 2 fps idle.
+  vision_track_fps: 10
+  vision_idle_fps: 2
+  vision_detect_width: 256
   db_path: deskbot.db           # relative to repo root
   host: 0.0.0.0
   port: 8000
@@ -50,4 +56,7 @@ settings:
 
   # --- mood ---
   - { key: mood.enabled,           value: true,      type: bool,  namespace: mood }
+
+  # --- camera preview (privacy: off by default; on = MJPEG stream on the LAN) ---
+  - { key: camera.preview_enabled, value: false,     type: bool,  namespace: camera }
   - { key: mood.sample_interval_s, value: 5,         type: int,   namespace: mood }

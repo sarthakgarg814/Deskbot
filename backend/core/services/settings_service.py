@@ -19,6 +19,12 @@ def _decode(row: Setting):
         return row.value
 
 
+def get_value(s: Session, key: str, default=None):
+    """Decoded value of a single setting (or default if missing)."""
+    row = s.get(Setting, key)
+    return _decode(row) if row is not None else default
+
+
 def list_settings(s: Session, namespace: str | None = None) -> list[SettingOut]:
     stmt = select(Setting).order_by(Setting.namespace, Setting.key)
     if namespace:
