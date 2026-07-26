@@ -67,8 +67,84 @@ class InProcessBus:
         return value
 
 
-def make_bus(backend: str = "inprocess") -> Bus:
-    """Factory — swap to a RedisBus here when vision/voice land (D3)."""
+class RedisBus:
+    """Async Redis-backed bus for the `core` consumer (pub/sub + state cache).
+    Used when processes must talk across process boundaries (vision/voice, D3)."""
+
+    def __init__(self, url: str = "redis://localhost:6379/0") -> None:
+        import redis.asyncio as aioredis
+
+        self._r = aioredis.from_url(url)
+
+    async def publish(self, topic: str, payload: dict[str, Any]) -> None:
+        await self._r.publish(topic, json.dumps(payload))
+
+    async def subscribe(self, topic: str) -> AsyncIterator[dict[str, Any]]:
+        pubsub = self._r.pubsub()
+        await pubsub.subscribe(topic)
+        try:
+            async for msg in pubsub.listen():
+                if msg.get("type") == "message":
+                    yield json.loads(msg["data"])
+        finally:
+            await pubsub.unsubscribe(topic)
+            await pubsub.aclose()
+
+    async def set_state(self, key: str, value: Any, ttl: float | None = None) -> None:
+        await self._r.set(key, json.dumps(value), ex=int(ttl) if ttl else None)
+
+    async def get_state(self, key: str) -> Any | None:
+        v = await self._r.get(key)
+        return json.loads(v) if v is not None else None
+
+
+class Publisher(Protocol):
+    """Sync producer interface for standalone services (vision, hardware)."""
+    def publish(self, topic: str, payload: dict[str, Any]) -> None: ...
+    def set_state(self, key: str, value: Any, ttl: float | None = None) -> None: ...
+
+
+class RedisPublisher:
+    """Sync Redis producer — vision/hardware loops are synchronous."""
+
+    def __init__(self, url: str = "redis://localhost:6379/0") -> None:
+        import redis
+
+        self._r = redis.Redis.from_url(url)
+
+    def publish(self, topic: str, payload: dict[str, Any]) -> None:
+        self._r.publish(topic, json.dumps(payload))
+
+    def set_state(self, key: str, value: Any, ttl: float | None = None) -> None:
+        self._r.set(key, json.dumps(value), ex=int(ttl) if ttl else None)
+
+
+class LogPublisher:
+    """No-op producer that just logs — for laptop dev without Redis."""
+
+    def __init__(self) -> None:
+        import logging
+
+        self._log = logging.getLogger("deskbot.bus.log")
+
+    def publish(self, topic: str, payload: dict[str, Any]) -> None:
+        self._log.debug("publish %s %s", topic, payload)
+
+    def set_state(self, key: str, value: Any, ttl: float | None = None) -> None:
+        self._log.debug("set_state %s %s", key, value)
+
+
+def make_bus(backend: str = "inprocess", url: str = "redis://localhost:6379/0") -> Bus:
+    """Async bus for the core consumer. inprocess (single process) | redis (D3)."""
     if backend in ("inprocess", "mock"):
         return InProcessBus()
-    raise ValueError(f"unknown bus backend: {backend!r} (only 'inprocess' in Milestone 1)")
+    if backend == "redis":
+        return RedisBus(url)
+    raise ValueError(f"unknown bus backend: {backend!r}")
+
+
+def make_publisher(backend: str = "redis", url: str = "redis://localhost:6379/0") -> Publisher:
+    """Sync publisher for producer services (vision). redis on the Pi; log for dev."""
+    if backend == "redis":
+        return RedisPublisher(url)
+    return LogPublisher()

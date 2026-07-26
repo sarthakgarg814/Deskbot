@@ -17,7 +17,7 @@ from common.bus import Bus
 log = logging.getLogger("deskbot.ws")
 
 # Topics forwarded to browsers. More get added as services come online.
-FORWARDED_TOPICS = ("system", "notes", "settings", "hardware")
+FORWARDED_TOPICS = ("system", "notes", "settings", "hardware", "camera", "presence")
 
 
 class WsHub:

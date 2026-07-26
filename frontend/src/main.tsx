@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
 import Hardware from "./pages/Hardware";
+import Camera from "./pages/Camera";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -14,6 +15,7 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { index: true, element: <Home /> },
+      { path: "camera", element: <Camera /> },
       { path: "notes", element: <Notes /> },
       { path: "settings", element: <Settings /> },
       { path: "hardware", element: <Hardware /> },

@@ -30,6 +30,23 @@ export interface Setting {
   updated_at: string;
 }
 
+export interface Face {
+  cx: number;
+  cy: number;
+  err_x: number;
+  err_y: number;
+  score: number;
+}
+
+export interface CameraStatus {
+  running: boolean;
+  fps?: number;
+  detect_ms?: number;
+  present?: boolean;
+  faces?: number;
+  face?: Face | null;
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -65,4 +82,7 @@ export const api = {
       body: JSON.stringify({ state }),
     }),
   oledPreview: () => req<{ lines: string[] }>("/oled/preview"),
+
+  cameraStatus: () => req<CameraStatus>("/camera/status"),
+  cameraCenter: () => req<{ ok: boolean }>("/camera/center", { method: "POST" }),
 };

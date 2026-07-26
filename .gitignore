@@ -36,3 +36,6 @@ Thumbs.db
 
 # backend venv
 backend/.venv/
+
+# per-machine config override
+config/local.yaml

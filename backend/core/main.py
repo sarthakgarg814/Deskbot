@@ -37,7 +37,8 @@ async def lifespan(app: FastAPI):
     seed(cfg.seed_settings)
 
     app.state.config = cfg
-    app.state.bus = make_bus("inprocess")
+    app.state.bus = make_bus(cfg.bus_backend, cfg.redis_url)
+    log.info("bus backend: %s", cfg.bus_backend)
     app.state.hardware = get_hardware(cfg.hardware_backend)
     app.state.ws_hub = WsHub(app.state.bus)
     app.state.scheduler = Scheduler(app.state.bus, app.state.hardware)

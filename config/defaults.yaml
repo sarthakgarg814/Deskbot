@@ -8,6 +8,8 @@
 
 runtime:
   hardware_backend: mock        # mock | real   (Milestone 1 = mock; the Pi uses real)
+  bus_backend: inprocess        # inprocess | redis  (laptop=inprocess; Pi w/ vision=redis)
+  redis_url: redis://localhost:6379/0
   db_path: deskbot.db           # relative to repo root
   host: 0.0.0.0
   port: 8000

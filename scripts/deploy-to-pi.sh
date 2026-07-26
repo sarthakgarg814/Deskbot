@@ -30,6 +30,7 @@ rsync -az --delete --progress --timeout=60 \
   --exclude '*.pyc' \
   --exclude 'deskbot.db*' \
   --exclude 'models/' \
+  --exclude 'config/local.yaml' \
   "$REPO_DIR/" "$PI_HOST:~/$DEST/"
 
 cat <<EOF

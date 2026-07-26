@@ -4,6 +4,7 @@ import type { SystemStatus } from "../lib/api";
 
 const NAV = [
   { to: "/", label: "Dashboard", end: true },
+  { to: "/camera", label: "Camera" },
   { to: "/notes", label: "Notes" },
   { to: "/hardware", label: "Hardware" },
   { to: "/settings", label: "Settings" },
