@@ -29,6 +29,7 @@ settings:
   # --- camera / tracking (CPU knobs — editable live from the dashboard) ---
   - { key: camera.tracking_mode,   value: "smooth",  type: str,   namespace: camera }
   - { key: camera.sensitivity,     value: 0.5,       type: float, namespace: camera }
+  - { key: camera.tracking_enabled, value: true,     type: bool,  namespace: camera }  # off = servos freeze
   - { key: camera.track_fps,       value: 10,        type: int,   namespace: camera }  # fps when present
   - { key: camera.idle_fps,        value: 2,         type: int,   namespace: camera }  # fps when away
   - { key: camera.detect_width,    value: 256,       type: int,   namespace: camera }  # detect downscale px

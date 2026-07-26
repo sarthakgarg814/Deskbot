@@ -69,6 +69,7 @@ async def _mirror_vision_config(app: FastAPI) -> None:
     def read_vision(s) -> dict:
         return {
             "preview_enabled": bool(get_value(s, "camera.preview_enabled", False)),
+            "tracking_enabled": bool(get_value(s, "camera.tracking_enabled", True)),
             "track_fps": int(get_value(s, "camera.track_fps", 10)),
             "idle_fps": int(get_value(s, "camera.idle_fps", 2)),
             "detect_width": int(get_value(s, "camera.detect_width", 256)),
@@ -87,6 +88,7 @@ async def _mirror_vision_config(app: FastAPI) -> None:
             "pan_invert": bool(get_value(s, "servo.pan.invert", False)),
             "tilt_invert": bool(get_value(s, "servo.tilt.invert", False)),
             "recenter_after_s": float(get_value(s, "servo.recenter_after_s", 3.0)),
+            "tracking_enabled": bool(get_value(s, "camera.tracking_enabled", True)),
         }
 
     async def mirror():

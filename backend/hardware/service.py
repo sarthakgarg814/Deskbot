@@ -48,6 +48,7 @@ def _config_from_state(vc: dict | None, base: ArbiterConfig) -> ArbiterConfig:
         pan_invert=bool(g.get("pan_invert", base.pan_invert)),
         tilt_invert=bool(g.get("tilt_invert", base.tilt_invert)),
         recenter_after_s=float(g.get("recenter_after_s", base.recenter_after_s)),
+        tracking_enabled=bool(g.get("tracking_enabled", base.tracking_enabled)),
     )
 
 

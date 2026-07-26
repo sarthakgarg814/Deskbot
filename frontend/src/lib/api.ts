@@ -51,6 +51,7 @@ export interface CameraStatus {
   present?: boolean;
   faces?: number;
   preview?: boolean;
+  tracking?: boolean;
   face?: Face | null;
 }
 

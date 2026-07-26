@@ -81,6 +81,15 @@ def test_recenter_home_when_idle():
     assert p < 30.0 and t < 20.0
 
 
+def test_tracking_disabled_freezes_no_home():
+    arb = ServoArbiter(_cfg(recenter_after_s=1.0, tracking_enabled=False))
+    arb.pan, arb.tilt = 25.0, 15.0
+    arb.owner = "face_tracking"
+    arb.update({}, now=10.0, dt=0.1)                 # -> idle
+    p, t = arb.update({}, now=12.0, dt=0.1)          # well past grace, but tracking off
+    assert p == 25.0 and t == 15.0                   # frozen, did NOT drift home
+
+
 def test_limit_clamps_angle():
     arb = ServoArbiter(_cfg(limit_deg=10.0))
     cmds = {"manual_test": Command("angle", 90.0, 0.0, expires_at=100.0)}

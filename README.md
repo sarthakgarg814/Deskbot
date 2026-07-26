@@ -17,6 +17,7 @@ and responds to voice — processing almost everything **on-device**.
 | 03 | [Database schema](docs/03-database-schema.md) | Full SQLite schema, single-writer rule |
 | 04 | [API contract](docs/04-api-contract.md) | REST endpoints + WebSocket + Redis topic contracts |
 | 05 | [Milestone 1](docs/05-milestone-1.md) | Backend + Dashboard skeleton — detailed build plan |
+| 06 | [Operations](docs/06-operations.md) | **As-built**: services, deploy, full settings reference, troubleshooting playbook |
 
 ## Repository map
 
@@ -45,24 +46,27 @@ deskbot/
 - Peripherals: Pi Camera v2/HQ, 2× servo (pan/tilt), 0.96" I2C OLED, WS2812B
   strip, capacitive touch sensor, USB mic
 
-## Status
+## Status — face-follow working on real hardware 🤖
 
-**Milestone 1 complete** — backend + dashboard skeleton on mock hardware.
+- ✅ **M1** — `core` (FastAPI + WebSocket + SQLite) + React dashboard, on the bus.
+- ✅ **M2a** — `vision`: Pi camera + OpenCV **YuNet** face detection at ~17 FPS,
+  CPU-tuned (adaptive rate), privacy-gated MJPEG preview.
+- ✅ **M2b** — `hardware`: servo **arbiter + position-step control** driving
+  pan/tilt via **hardware PWM** (jitter-free), with direction/offset config,
+  return-to-home when you step away, and a **tracking on/off** toggle.
+- ⬜ **Next: OLED** status display (0.96" I2C), then LEDs, voice, calendar, mood.
 
-- `core` FastAPI service: REST + WebSocket, SQLite (seeded), 1 Hz system sampler,
-  in-process bus, mock hardware behind the HAL seam. 5 smoke tests pass.
-- React dashboard: live Home tiles, Notes (CRUD + search), Settings editor,
-  Hardware test page (servo/LED/OLED). Backend serves the built bundle.
+Runs on Raspberry Pi OS **Trixie** (64-bit, Python 3.13). Full operator guide,
+config reference, and troubleshooting: **[docs/06-operations.md](docs/06-operations.md)**.
 
-Run it:
-
+### Run locally (mock hardware, no Pi)
 ```bash
-make setup            # venv + backend deps (mock hardware)
-make frontend-install
-make frontend-build   # -> frontend/dist
-make backend          # http://localhost:8000
-# or dev mode with hot reload: `make backend` + `make frontend-dev` (:5173)
+make setup && make frontend-install && make frontend-build && make backend
+# http://localhost:8000
 ```
 
-Next: **Milestone 2 — camera face-tracking** (vision process, MediaPipe, servo
-arbiter + PID). See [docs/05-milestone-1.md](docs/05-milestone-1.md#exit-milestone-2).
+### Deploy to the Pi
+```bash
+./scripts/deploy-to-pi.sh deskbot@deskbot.local     # laptop: build + rsync
+# first time on the Pi: ./scripts/setup-pi.sh, setup-vision-pi.sh, setup-hardware-pi.sh [--real]
+```

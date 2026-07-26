@@ -48,6 +48,7 @@ class ArbiterConfig:
     pan_invert: bool = False
     tilt_invert: bool = False
     recenter_after_s: float = 3.0  # idle this long (face lost) → drift home
+    tracking_enabled: bool = True  # off → servo freezes (no track, no home-drift)
 
 
 class ServoArbiter:
@@ -96,8 +97,10 @@ class ServoArbiter:
             self._target_pan, self._target_tilt = self.pan, self.tilt  # no jump on takeover
 
         if cmd is None:
-            # idle → hold, then drift home once the face has been gone long enough
-            if self._idle_since is not None and (now - self._idle_since) >= self.cfg.recenter_after_s:
+            # idle → hold; drift home once the face has been gone long enough, but
+            # ONLY while tracking is enabled (tracking off = freeze wherever it is)
+            if (self.cfg.tracking_enabled and self._idle_since is not None
+                    and (now - self._idle_since) >= self.cfg.recenter_after_s):
                 self._target_pan = self._target_tilt = 0.0
         elif cmd.mode == "angle":
             self._target_pan = self._clamp(cmd.pan)

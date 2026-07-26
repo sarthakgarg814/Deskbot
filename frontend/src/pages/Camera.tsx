@@ -26,6 +26,7 @@ export default function Camera() {
   const cam = live ?? seed;
   const face = cam?.face ?? null;
   const previewOn = Boolean(cam?.preview);
+  const trackingOn = cam?.tracking !== false;   // default on until we hear otherwise
 
   const togglePreview = async () => {
     setBusy(true);
@@ -36,11 +37,29 @@ export default function Camera() {
     }
   };
 
+  const toggleTracking = async () => {
+    setBusy(true);
+    try {
+      await api.updateSettings([{ key: "camera.tracking_enabled", value: !trackingOn }]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-lg font-semibold">Camera</h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTracking}
+            disabled={busy || !cam?.running}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-40 ${
+              trackingOn ? "bg-led-working text-neutral-950" : "bg-neutral-800 text-neutral-300"
+            }`}
+          >
+            Tracking: {trackingOn ? "on" : "off"}
+          </button>
           <button
             onClick={togglePreview}
             disabled={busy || !cam?.running}

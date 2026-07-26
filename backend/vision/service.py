@@ -67,6 +67,7 @@ def run(source: str, width: int, height: int, detect_width: int | None = None) -
         log.warning("preview server not started (%s) — tracking continues", e)
 
     presence = "unknown"
+    tracking_enabled = True
     last_face_t = 0.0
     last_pub = 0.0
     last_flag_check = 0.0
@@ -89,10 +90,11 @@ def run(source: str, width: int, height: int, detect_width: int | None = None) -
             face = faces[0] if faces else None
             if face:
                 last_face_t = now
-                pub.publish("cmd.servo.target", {
-                    "owner": "face_tracking", "mode": "error",
-                    "pan": face.err_x, "tilt": face.err_y, "ttl_ms": TARGET_TTL_MS,
-                })
+                if tracking_enabled:
+                    pub.publish("cmd.servo.target", {
+                        "owner": "face_tracking", "mode": "error",
+                        "pan": face.err_x, "tilt": face.err_y, "ttl_ms": TARGET_TTL_MS,
+                    })
 
             present = (now - last_face_t) < AWAY_AFTER_S
             new_presence = "present" if present else "away"
@@ -112,6 +114,7 @@ def run(source: str, width: int, height: int, detect_width: int | None = None) -
                     "present": present,
                     "faces": len(faces),
                     "preview": preview.enabled,
+                    "tracking": tracking_enabled,
                     "face": None if not face else {
                         "cx": round(face.cx, 3), "cy": round(face.cy, 3),
                         "err_x": round(face.err_x, 3), "err_y": round(face.err_y, 3),
@@ -131,6 +134,7 @@ def run(source: str, width: int, height: int, detect_width: int | None = None) -
                     idle_dt = 1.0 / max(1, int(vc.get("idle_fps", cfg.vision_idle_fps)))
                     det.detect_width = int(vc.get("detect_width", det.detect_width))
                     preview.enabled = bool(vc.get("preview_enabled", False))
+                    tracking_enabled = bool(vc.get("tracking_enabled", True))
 
             # encode a preview JPEG ONLY while someone is watching (else zero cost)
             if preview.enabled:

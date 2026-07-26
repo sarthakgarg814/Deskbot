@@ -79,9 +79,11 @@ data model in one place.
 | D7 | Config lives in DB `settings`, mirrored to `config/*.yaml` defaults | Proposed | Pure file config |
 | D8 | **Scope: drop water tracking + drop local LLM; add mood detection** (FER model on the face crop, label-only storage) | **Accepted** | Keep water; local LLM; MediaPipe blendshapes as primary |
 | D9 | **Face detection via OpenCV `FaceDetectorYN` (YuNet), not MediaPipe** — MediaPipe supports only Python ≤3.11 and won't run on Trixie/Py3.13. Camera capture via `picamera2` (fine on 3.13). Detector behind a `FaceDetector` interface so it's swappable. | **Accepted** | Downgrade OS to Bookworm; Haar cascade; build MediaPipe from source |
+| D10 | **Position-step tracking (move-and-settle), not velocity PID** — the camera rides on the servo, so `target = current + track_gain·error·(FOV/2)` per vision sample, then hold. Velocity control (`speed ∝ error`) hunted because of ~150ms feedback lag. | **Accepted** | velocity PID; deadbeat (gain=1) |
+| D11 | **Hardware PWM on GPIO 12/13 (`rpi-hardware-pwm` + `pwm-2chan` overlay), superseding D6's software PWM** — software PWM (gpiozero/lgpio) jittered the SG90s. Real driver prefers hardware PWM, falls back to software PWM then mock. | **Accepted** | software PWM (jitters); PCA9685 board; build pigpio |
 
-Update this table as decisions are accepted/changed. "Proposed" → "Accepted"
-after your review. D1/D2/D4/D7 still want an explicit thumbs-up.
+Update this table as decisions are accepted/changed. Implemented & running:
+D1–D6, D9–D11. D7 (config-in-DB) in use. D8 (mood) scoped, not yet built.
 
 ## Open questions for you
 
