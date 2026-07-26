@@ -44,7 +44,8 @@ between processes flows through Redis.
 
 ### `vision` (backend/vision/)
 - Single capture loop at target 15–20 FPS (OpenCV `VideoCapture` / picamera2).
-- **Face detection** (MediaPipe Face Detection) → compute normalized error from
+- **Face detection** (OpenCV `FaceDetectorYN` / YuNet — MediaPipe is unavailable
+  on Trixie/Py3.13, see D9) → compute normalized error from
   frame center → publish `cmd.servo.target` at 20–30 Hz (throttled, dead-zoned).
 - **Presence** state machine (`present`/`away`/`unknown`) → publish
   `event.presence` + cache `state:presence`.

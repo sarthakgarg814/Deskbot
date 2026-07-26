@@ -103,6 +103,6 @@ and step 5 (dashboard alive) before pressing on.
 ## Exit → Milestone 2
 
 With the backbone proven, M2 is **camera face-tracking**: `vision` process,
-MediaPipe face detect, publish `cmd.servo.target`, and the **real** servo arbiter
+YuNet face detect (OpenCV, see D9), publish `cmd.servo.target`, and the **real** servo arbiter
 + PID in `hardware` — the first physical behavior. The bus, state cache, and
 dashboard live-view built in M1 make that a plug-in, not a rebuild.

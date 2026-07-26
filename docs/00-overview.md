@@ -5,7 +5,7 @@
 | Principle | What it means in the code |
 |-----------|---------------------------|
 | Privacy first | No audio/video/frames leave the device. Mood is stored as a **label only**, never an image. Cloud calls (calendar sync) are opt-in and logged. |
-| Local AI first | Deterministic methods before ML. ML models run on-device via ONNX / Vosk / MediaPipe. **No LLM** in current scope. |
+| Local AI first | Deterministic methods before ML. ML models run on-device via ONNX / OpenCV / Vosk (MediaPipe dropped — unavailable on Trixie/Py3.13, see D9). **No LLM** in current scope. |
 | Cloud optional | The whole system runs with WiFi off, minus calendar sync. |
 | Modular | Four independent OS processes, each restartable, communicating over a message bus. |
 | Offline friendly | Frontend served locally, all data in local SQLite, models pre-downloaded. |
@@ -78,6 +78,7 @@ data model in one place.
 | D6 | **Servos on GPIO pins, driven by `lgpio`** (gpiozero `AngularServo`, Trixie's native backend). pigpio was removed in Trixie. PCA9685 I2C board kept as a drop-in fallback behind the same HAL interface if software-PWM jitter proves too much. | **Accepted** | pigpio from source (fragile); PCA9685 board |
 | D7 | Config lives in DB `settings`, mirrored to `config/*.yaml` defaults | Proposed | Pure file config |
 | D8 | **Scope: drop water tracking + drop local LLM; add mood detection** (FER model on the face crop, label-only storage) | **Accepted** | Keep water; local LLM; MediaPipe blendshapes as primary |
+| D9 | **Face detection via OpenCV `FaceDetectorYN` (YuNet), not MediaPipe** — MediaPipe supports only Python ≤3.11 and won't run on Trixie/Py3.13. Camera capture via `picamera2` (fine on 3.13). Detector behind a `FaceDetector` interface so it's swappable. | **Accepted** | Downgrade OS to Bookworm; Haar cascade; build MediaPipe from source |
 
 Update this table as decisions are accepted/changed. "Proposed" → "Accepted"
 after your review. D1/D2/D4/D7 still want an explicit thumbs-up.
