@@ -17,13 +17,19 @@ echo "==> building dashboard (vite build)"
 ( cd "$REPO_DIR/frontend" && npm run build )
 
 echo "==> rsync -> $PI_HOST:~/$DEST/"
-rsync -az --delete \
+# --progress works on macOS's ancient built-in rsync 2.6.9 (unlike --info);
+# timeouts + ssh keepalive so a bad connection fails fast instead of hanging.
+# Tip: `brew install rsync` for a modern 3.x if you want nicer output.
+rsync -az --delete --progress --timeout=60 \
+  -e "ssh -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3" \
   --exclude '.git/' \
   --exclude 'backend/.venv/' \
+  --exclude 'backend/.venv-vision/' \
   --exclude 'frontend/node_modules/' \
   --exclude '__pycache__/' \
   --exclude '*.pyc' \
   --exclude 'deskbot.db*' \
+  --exclude 'models/' \
   "$REPO_DIR/" "$PI_HOST:~/$DEST/"
 
 cat <<EOF
