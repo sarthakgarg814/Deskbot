@@ -44,16 +44,30 @@ def get_hardware(backend: str = "mock") -> Hardware:
         from .mock import MockLed, MockOled
 
         cfg = load_config()
-        try:
-            from .servo_real import RealServo
-
-            servo = RealServo(cfg.servo_pan_pin, cfg.servo_tilt_pin)
-        except Exception as e:  # noqa: BLE001
-            log.error("real servo init failed (%s) — falling back to mock servo", e)
-            from .mock import MockServo
-
-            servo = MockServo()
+        servo = _make_real_servo(cfg.servo_pan_pin, cfg.servo_tilt_pin)
         log.info("hardware backend: real (servo) + mock (led/oled)")
         return Hardware(servo, MockLed(), MockOled(), monitor, "real")
 
     raise ValueError(f"unknown hardware backend: {backend!r}")
+
+
+def _make_real_servo(pan_pin: int, tilt_pin: int):
+    """Prefer hardware PWM (jitter-free); fall back to software PWM, then mock."""
+    try:
+        from .servo_hwpwm import HardwarePWMServo
+
+        return HardwarePWMServo(pan_pin, tilt_pin)
+    except Exception as e:  # noqa: BLE001
+        log.warning(
+            "hardware PWM unavailable (%s) — is the pwm-2chan overlay enabled + "
+            "rpi-hardware-pwm installed? Falling back to software PWM (may jitter).", e
+        )
+    try:
+        from .servo_real import RealServo
+
+        return RealServo(pan_pin, tilt_pin)
+    except Exception as e:  # noqa: BLE001
+        log.error("real servo init failed (%s) — falling back to mock servo", e)
+        from .mock import MockServo
+
+        return MockServo()

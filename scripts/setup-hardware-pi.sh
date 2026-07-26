@@ -24,6 +24,7 @@ echo "==> hardware venv (--system-site-packages for gpiozero/lgpio)"
 python3 -m venv --system-site-packages "$HW_VENV"
 "$HW_VENV/bin/pip" install -q --upgrade pip
 "$HW_VENV/bin/pip" install -q -e "$REPO_DIR/backend"
+"$HW_VENV/bin/pip" install -q rpi-hardware-pwm   # jitter-free hardware PWM
 
 "$HW_VENV/bin/python" - <<'PY'
 from hardware.arbiter import ServoArbiter
@@ -46,6 +47,18 @@ else:
 p.write_text(txt)
 print("hardware_backend: real")
 PY
+
+  # Hardware PWM on GPIO 12/13 needs the pwm-2chan overlay (jitter-free servos).
+  CONFIG_TXT=/boot/firmware/config.txt
+  [ -f "$CONFIG_TXT" ] || CONFIG_TXT=/boot/config.txt
+  OVERLAY="dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4"
+  if ! grep -qF "$OVERLAY" "$CONFIG_TXT"; then
+    echo "$OVERLAY" | sudo tee -a "$CONFIG_TXT" >/dev/null
+    echo "==> added hardware-PWM overlay to $CONFIG_TXT"
+    NEED_REBOOT=1
+  else
+    echo "==> hardware-PWM overlay already present in $CONFIG_TXT"
+  fi
 fi
 
 echo "==> systemd unit: deskbot-hardware.service"
@@ -76,9 +89,18 @@ sudo systemctl --no-pager --lines=0 status deskbot-hardware.service || true
 
 cat <<EOF
 
-==> Hardware service enabled ($([ "$REAL" = 1 ] && echo "REAL servos" || echo "mock — no wiring needed yet")).
+==> Hardware service enabled ($([ "$REAL" = 1 ] && echo "REAL servos, hardware PWM" || echo "mock — no wiring needed yet")).
     Watch the arbiter:  journalctl -u deskbot-hardware -f
     Dashboard Hardware page shows live pan/tilt; move your face and the
     'driver: face_tracking' position should track it.
     When servos are wired to GPIO 12/13:  ./scripts/setup-hardware-pi.sh --real
 EOF
+
+if [ "${NEED_REBOOT:-0}" = "1" ]; then
+  cat <<'EOF'
+
+  *** REBOOT REQUIRED ***  The hardware-PWM overlay only takes effect after a
+  reboot. Run:  sudo reboot
+  After it comes back, the hardware log should read "hardware-PWM servos …".
+EOF
+fi

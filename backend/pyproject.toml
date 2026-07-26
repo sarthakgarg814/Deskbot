@@ -24,6 +24,7 @@ dependencies = [
 pi = [
     "gpiozero>=2.0",
     "lgpio>=0.2",
+    "rpi-hardware-pwm>=0.2",                 # jitter-free hardware PWM (GPIO 12/13)
     "luma.oled>=3.12",
     "adafruit-circuitpython-pca9685>=3.4",  # optional: PCA9685 servo board
 ]
