@@ -95,6 +95,9 @@ async def _mirror_vision_config(app: FastAPI) -> None:
         return {
             "mode": str(get_value(s, "oled.mode", "eyes")),        # eyes | status
             "emotion": str(get_value(s, "oled.emotion", "auto")),  # auto | happy | ...
+            "stats_enabled": bool(get_value(s, "oled.stats_enabled", True)),
+            "stats_every_s": int(get_value(s, "oled.stats_every_s", 30)),
+            "stats_dwell_s": int(get_value(s, "oled.stats_dwell_s", 4)),
         }
 
     async def mirror():

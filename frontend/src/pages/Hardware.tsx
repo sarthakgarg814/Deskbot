@@ -101,6 +101,64 @@ export default function Hardware() {
           {oled.length ? oled.map((l, i) => <div key={i}>{l}</div>) : <span className="text-neutral-600">(blank)</span>}
         </div>
       </section>
+
+      <DisplayConfig />
     </div>
+  );
+}
+
+const EMOTIONS = ["auto", "happy", "neutral", "sad", "angry", "surprised", "sleepy"];
+
+function DisplayConfig() {
+  const [cfg, setCfg] = useState<Record<string, unknown>>({});
+  const load = () =>
+    api.listSettings("oled").then((rows) =>
+      setCfg(Object.fromEntries(rows.map((r) => [r.key, r.value]))),
+    );
+  useEffect(() => { load(); }, []);
+  const set = async (key: string, value: unknown) => {
+    setCfg((c) => ({ ...c, [key]: value }));
+    await api.updateSettings([{ key, value }]);
+  };
+
+  return (
+    <section className="rounded-xl border border-neutral-800 p-5">
+      <h2 className="font-medium mb-3">Display (OLED)</h2>
+      <div className="space-y-3 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-neutral-300">Mode</span>
+          <select value={String(cfg["oled.mode"] ?? "eyes")} onChange={(e) => set("oled.mode", e.target.value)}
+                  className="rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1">
+            <option value="eyes">eyes</option>
+            <option value="status">status text</option>
+          </select>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-neutral-300">Emotion</span>
+          <select value={String(cfg["oled.emotion"] ?? "auto")} onChange={(e) => set("oled.emotion", e.target.value)}
+                  className="rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1">
+            {EMOTIONS.map((e) => <option key={e} value={e}>{e}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-neutral-300">Flash system stats when present</span>
+          <input type="checkbox" checked={cfg["oled.stats_enabled"] !== false}
+                 onChange={(e) => set("oled.stats_enabled", e.target.checked)}
+                 className="h-4 w-4 accent-led-idle" />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-neutral-300">…every (sec)</span>
+          <input type="number" min={5} defaultValue={Number(cfg["oled.stats_every_s"] ?? 30)}
+                 onBlur={(e) => set("oled.stats_every_s", parseInt(e.target.value || "30", 10))}
+                 className="w-20 rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-right" />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-neutral-300">…for (sec)</span>
+          <input type="number" min={1} defaultValue={Number(cfg["oled.stats_dwell_s"] ?? 4)}
+                 onBlur={(e) => set("oled.stats_dwell_s", parseInt(e.target.value || "4", 10))}
+                 className="w-20 rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-right" />
+        </div>
+      </div>
+    </section>
   );
 }

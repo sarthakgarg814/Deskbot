@@ -16,6 +16,11 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _localnow() -> datetime:
+    # water schedule/reset are user-local, so water events store local naive time
+    return datetime.now()
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -62,4 +67,4 @@ class WaterEvent(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[str] = mapped_column(String(20))   # "reminder_sent" | "drank"
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_localnow)

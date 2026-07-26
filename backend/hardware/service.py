@@ -47,6 +47,12 @@ def _status_lines(pub) -> list[str]:
     ]
 
 
+def _fmt_uptime(sec) -> str:
+    sec = int(sec or 0)
+    d, h, m = sec // 86400, (sec % 86400) // 3600, (sec % 3600) // 60
+    return f"{d}d {h}h" if d else (f"{h}h {m}m" if h else f"{m}m")
+
+
 def _resolve_emotion(pref: str, present: bool, pub) -> str:
     if pref and pref != "auto":
         return pref
@@ -61,7 +67,7 @@ def _oled_thread(hw, pub) -> None:
     smooth and never perturb the servo control loop. Modes: eyes | status."""
     import random
 
-    from .oled_face import draw_face, draw_water
+    from .oled_face import draw_face, draw_stats, draw_water
 
     next_blink = time.monotonic() + random.uniform(2.5, 6.0)
     blink_until = 0.0
@@ -96,6 +102,21 @@ def _oled_thread(hw, pub) -> None:
                 cam = pub.get_state("state:camera") or {}
                 present = bool(cam.get("present"))
                 face = cam.get("face") or {}
+
+                # periodically flash the system-stats screen while present
+                every = max(5, int(cfg.get("stats_every_s", 30)))
+                dwell = max(1, int(cfg.get("stats_dwell_s", 4)))
+                if cfg.get("stats_enabled", True) and present and (now % every) < dwell:
+                    sysd = pub.get_state("state:system") or {}
+                    hw.oled.render(lambda d, w, h: draw_stats(
+                        d, w, h, clock=time.strftime("%H:%M"),
+                        cpu=sysd.get("cpu_percent"), temp=sysd.get("temp_c"),
+                        ram=sysd.get("ram_percent"), disk=sysd.get("storage_percent"),
+                        uptime=_fmt_uptime(sysd.get("uptime_s")),
+                        wifi=bool(sysd)))
+                    time.sleep(0.2)
+                    continue
+
                 if now >= next_blink and now > blink_until:
                     blink_until = now + 0.12
                     next_blink = now + random.uniform(2.5, 6.0)

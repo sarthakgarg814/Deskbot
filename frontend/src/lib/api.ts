@@ -114,6 +114,11 @@ export interface WaterStatus {
   only_when_present: boolean;
   buzzer_enabled: boolean;
   daily_goal: number;
+  active_start: string;
+  active_end: string;
+  active_days: number[];
+  reset_hour: number;
+  active_now: boolean;
   count_today: number;
   last_event: string | null;
   seconds_until_next: number;

@@ -107,6 +107,8 @@ Three layers, lowest to highest precedence:
 |-----|---------|--------|
 | `oled.mode` | eyes | `eyes` = animated robot eyes; `status` = text (time/CPU/temp/tracking/servo) |
 | `oled.emotion` | auto | `auto` = happy when a face is present, sleepy when away (and mood-driven later); or force `happy`/`neutral`/`sad`/`angry`/`surprised`/`sleepy` |
+| `oled.stats_enabled` | true | flash the icon system-stats screen periodically while present |
+| `oled.stats_every_s` / `oled.stats_dwell_s` | 30 / 4 | show stats every N sec, for M sec |
 
 ### water (core reminder engine)
 | Key | Default | Effect |
@@ -116,6 +118,11 @@ Three layers, lowest to highest precedence:
 | `water.only_when_present` | true | **only fire when a face is present** (the whole point) |
 | `water.buzzer_enabled` | true | beep the buzzer when a reminder fires |
 | `water.daily_goal` | 8 | glasses/day, for the dashboard progress bar |
+| `water.active_start` / `water.active_end` | 09:00 / 21:00 | only remind between these local times (no night reminders) |
+| `water.active_days` | [0..6] | weekdays it's active (0=Mon..6=Sun) |
+| `water.reset_hour` | 0 | hour the daily count resets (local) |
+
+All water times are **local** (the Pi's clock); water events store local time.
 
 A reminder fires the buzzer (`cmd.buzzer.beep`), a **"drink water" animation on
 the OLED** (`state:oled.alert`, ~8 s, over the eyes), a yellow LED, and a
@@ -123,7 +130,8 @@ dashboard toast. "I drank water" / the interval both reset the timer.
 
 ### runtime (config/defaults.yaml or local.yaml)
 `hardware_backend` (mock\|real), `bus_backend` (inprocess\|redis), `redis_url`,
-`servo_pan_pin` (12), `servo_tilt_pin` (13), `preview_port` (8090),
+`servo_pan_pin` (12), `servo_tilt_pin` (13), `buzzer_pin` (16), `touch_pin` (17),
+`preview_port` (8090),
 `vision_track_fps`/`idle_fps`/`detect_width` (startup fallbacks), `frontend_dist`.
 
 ## Face-tracking, how it works

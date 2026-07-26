@@ -114,6 +114,56 @@ export default function Water() {
         </div>
       </div>
 
+      {/* schedule */}
+      <h2 className="text-xs uppercase tracking-wide text-neutral-500 mb-2 mt-6">
+        Active schedule {w.active_now ? <span className="text-led-working">· active now</span> : <span className="text-neutral-500">· quiet now</span>}
+      </h2>
+      <div className="rounded-lg border border-neutral-800 divide-y divide-neutral-800">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="text-sm text-neutral-200">Only remind between</div>
+          <div className="flex items-center gap-2">
+            <input type="time" defaultValue={w.active_start}
+                   onBlur={(e) => set("water.active_start", e.target.value)}
+                   className="rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-sm outline-none focus:border-neutral-600" />
+            <span className="text-neutral-500 text-sm">to</span>
+            <input type="time" defaultValue={w.active_end}
+                   onBlur={(e) => set("water.active_end", e.target.value)}
+                   className="rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-sm outline-none focus:border-neutral-600" />
+          </div>
+        </div>
+        <div className="px-4 py-3">
+          <div className="text-sm text-neutral-200 mb-2">Active days</div>
+          <div className="flex gap-1">
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => {
+              const on = w.active_days.includes(i);
+              return (
+                <button
+                  key={d}
+                  onClick={() => {
+                    const next = on ? w.active_days.filter((x) => x !== i) : [...w.active_days, i].sort();
+                    set("water.active_days", next);
+                  }}
+                  className={`flex-1 rounded-md px-1 py-1.5 text-xs ${
+                    on ? "bg-led-idle text-white" : "bg-neutral-900 text-neutral-500"
+                  }`}
+                >
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div>
+            <div className="text-sm text-neutral-200">Daily reset hour</div>
+            <div className="text-xs text-neutral-500">when today's count resets (0–23, local)</div>
+          </div>
+          <input type="number" min={0} max={23} defaultValue={w.reset_hour}
+                 onBlur={(e) => set("water.reset_hour", Math.max(0, Math.min(23, parseInt(e.target.value || "0", 10))))}
+                 className="w-24 rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-sm text-right outline-none focus:border-neutral-600" />
+        </div>
+      </div>
+
       <p className="mt-4 text-xs text-neutral-600">
         When a reminder fires: the OLED plays a “drink water” animation, the buzzer
         beeps (if enabled + wired), and a banner shows on the dashboard.
