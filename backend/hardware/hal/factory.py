@@ -45,8 +45,9 @@ def get_hardware(backend: str = "mock") -> Hardware:
 
         cfg = load_config()
         servo = _make_real_servo(cfg.servo_pan_pin, cfg.servo_tilt_pin)
-        log.info("hardware backend: real (servo) + mock (led/oled)")
-        return Hardware(servo, MockLed(), MockOled(), monitor, "real")
+        oled = _make_real_oled()
+        log.info("hardware backend: real (servo + oled) + mock (led)")
+        return Hardware(servo, MockLed(), oled, monitor, "real")
 
     raise ValueError(f"unknown hardware backend: {backend!r}")
 
@@ -71,3 +72,16 @@ def _make_real_servo(pan_pin: int, tilt_pin: int):
         from .mock import MockServo
 
         return MockServo()
+
+
+def _make_real_oled():
+    """Real SSD1306 OLED; fall back to mock if it isn't wired / luma missing."""
+    try:
+        from .oled_real import RealOled
+
+        return RealOled()
+    except Exception as e:  # noqa: BLE001
+        log.warning("OLED init failed (%s) — falling back to mock OLED", e)
+        from .mock import MockOled
+
+        return MockOled()

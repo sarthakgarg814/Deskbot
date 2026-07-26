@@ -25,7 +25,8 @@ pi = [
     "gpiozero>=2.0",
     "lgpio>=0.2",
     "rpi-hardware-pwm>=0.2",                 # jitter-free hardware PWM (GPIO 12/13)
-    "luma.oled>=3.12",
+    "luma.oled>=3.12",                       # SSD1306 status display
+    "pillow>=10.0",                          # luma rendering backend
     "adafruit-circuitpython-pca9685>=3.4",  # optional: PCA9685 servo board
 ]
 dev = [

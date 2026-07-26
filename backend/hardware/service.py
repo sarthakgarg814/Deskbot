@@ -28,8 +28,31 @@ log = logging.getLogger("deskbot.hw.service")
 
 CONTROL_HZ = 40
 STATE_PUB_HZ = 12
+OLED_HZ = 1
 CENTER_TTL_S = 3.0
 CONFIG_POLL_S = 2.0
+
+
+def _render_oled(hw, pub, pan: float, tilt: float, owner: str) -> None:
+    """Compose + draw the OLED status screen (and mirror it to state:oled)."""
+    sysd = pub.get_state("state:system") or {}
+    cam = pub.get_state("state:camera") or {}
+    cpu, temp = sysd.get("cpu_percent"), sysd.get("temp_c")
+    present = cam.get("present")
+    tracking = cam.get("tracking", True)
+    have_sys = isinstance(cpu, (int, float)) and isinstance(temp, (int, float))
+    lines = [
+        time.strftime("DeskBot    %H:%M"),
+        f"CPU {cpu:.0f}%  {temp:.0f}C" if have_sys else "warming up...",
+        f"Face: {'present' if present else 'away'}",
+        f"Track {'ON' if tracking else 'off'}  {owner}",
+        f"Pan {pan:+.0f}  Tilt {tilt:+.0f}",
+    ]
+    try:
+        hw.oled.show_text(lines)
+    except Exception as e:  # noqa: BLE001 — an I2C hiccup must not stop servo control
+        log.debug("oled render skipped: %s", e)
+    pub.set_state("state:oled", {"lines": lines}, ttl=5)
 
 
 def _config_from_state(vc: dict | None, base: ArbiterConfig) -> ArbiterConfig:
@@ -95,6 +118,7 @@ def run() -> None:
     period = 1.0 / CONTROL_HZ
     last_pub = 0.0
     last_cfg = 0.0
+    last_oled = 0.0
     t_prev = time.monotonic()
 
     try:
@@ -123,12 +147,17 @@ def run() -> None:
                 pub.set_state("state:servo", state, ttl=5)
                 pub.publish("servo", state)
 
+            if now - last_oled >= 1.0 / OLED_HZ:
+                last_oled = now
+                _render_oled(hw, pub, pan, tilt, arbiter.owner)
+
             time.sleep(max(0.0, period - (time.monotonic() - now)))
     finally:
         try:
             hw.servo.center()
             if hasattr(hw.servo, "detach"):
                 hw.servo.detach()
+            hw.oled.clear()
         except Exception:  # noqa: BLE001
             pass
         pub.set_state("state:servo", {"pan": 0, "tilt": 0, "owner": "off"}, ttl=5)

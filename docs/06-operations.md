@@ -13,7 +13,7 @@ coordinated over **Redis**:
 |---------|-------------|------|-----------|
 | **core** | `deskbot-core` | FastAPI + WebSocket, SQLite (sole writer), scheduler, serves the dashboard | REST/WS to browser; publishes `cmd.*`, reads `state:*` |
 | **vision** | `deskbot-vision` | Pi camera, YuNet face detection, presence, MJPEG preview | publishes `cmd.servo.target`, `state:camera`, `presence` |
-| **hardware** | `deskbot-hardware` | the servos (sole GPIO owner) — arbiter + hardware PWM | subscribes `cmd.servo.*`, publishes `state:servo` |
+| **hardware** | `deskbot-hardware` | the servos + OLED (sole GPIO/I2C owner) — arbiter + hardware PWM + status screen | subscribes `cmd.servo.*`, publishes `state:servo`, `state:oled` |
 | redis | `redis-server` | the bus + state cache | — |
 
 Design rules that matter operationally:
@@ -153,5 +153,7 @@ systemctl is-active deskbot-core deskbot-vision deskbot-hardware redis-server
 - ✅ **M2a** camera + YuNet face detection (17 FPS, CPU-tuned)
 - ✅ **M2b** servo arbiter + hardware-PWM pan/tilt face-follow, tracking toggle,
   return-to-home
-- ⬜ **Next: OLED** (0.96" I2C SSD1306) — status display
-- ⬜ LEDs (WS2812B), voice (wake word + STT), calendar, mood detection
+- ✅ **OLED** (0.96" I2C SSD1306 @ 0x3C) — status screen: time, CPU/temp,
+  presence, tracking, pan/tilt (rendered by the hardware service @ 1 Hz)
+- ⬜ **Next:** LEDs (WS2812B), touch sensor + screen cycling, voice (wake word +
+  STT), calendar, mood detection

@@ -25,6 +25,7 @@ python3 -m venv --system-site-packages "$HW_VENV"
 "$HW_VENV/bin/pip" install -q --upgrade pip
 "$HW_VENV/bin/pip" install -q -e "$REPO_DIR/backend"
 "$HW_VENV/bin/pip" install -q rpi-hardware-pwm   # jitter-free hardware PWM
+"$HW_VENV/bin/pip" install -q luma.oled          # SSD1306 OLED status screen
 
 "$HW_VENV/bin/python" - <<'PY'
 from hardware.arbiter import ServoArbiter
