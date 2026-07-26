@@ -82,6 +82,11 @@ settings:
   - { key: water.active_days,      value: [0,1,2,3,4,5,6], type: json, namespace: water }  # 0=Mon .. 6=Sun
   - { key: water.reset_hour,       value: 0,         type: int,   namespace: water }  # daily count resets at this hour
 
+  # --- calendar (Google, read-only; inert until connected) ---
+  - { key: calendar.enabled,       value: false,     type: bool,  namespace: calendar }
+  - { key: calendar.sync_min,      value: 15,        type: int,   namespace: calendar }  # sync every N min
+  - { key: calendar.reminder_min,  value: 5,         type: int,   namespace: calendar }  # alert N min before a meeting
+
   # --- mood ---
   - { key: mood.enabled,           value: true,      type: bool,  namespace: mood }
 

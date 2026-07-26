@@ -128,6 +128,22 @@ A reminder fires the buzzer (`cmd.buzzer.beep`), a **"drink water" animation on
 the OLED** (`state:oled.alert`, ~8 s, over the eyes), a yellow LED, and a
 dashboard toast. "I drank water" / the interval both reset the timer.
 
+### calendar (Google, read-only)
+| Key | Default | Effect |
+|-----|---------|--------|
+| `calendar.enabled` | false | turn on Google Calendar sync (needs credentials) |
+| `calendar.sync_min` | 15 | sync interval |
+| `calendar.reminder_min` | 5 | fire a meeting alert this many minutes before |
+
+**Connecting (free, no billing):** Google Cloud → enable Calendar API → OAuth
+consent (add yourself as test user, set *In production* to avoid 7-day token
+expiry) → create a **Desktop-app** OAuth client → save JSON to
+`config/google/client_secret.json`. Then on your **laptop** run
+`python scripts/google-auth.py` (browser auth → `config/google/token.json`),
+enable `calendar.enabled`, `./scripts/deploy-to-pi.sh` (copies `config/google/`
+to the Pi), and restart core. A meeting within `reminder_min` fires the buzzer +
+an OLED "MEETING" screen + a dashboard toast.
+
 ### runtime (config/defaults.yaml or local.yaml)
 `hardware_backend` (mock\|real), `bus_backend` (inprocess\|redis), `redis_url`,
 `servo_pan_pin` (12), `servo_tilt_pin` (13), `buzzer_pin` (16), `touch_pin` (17),

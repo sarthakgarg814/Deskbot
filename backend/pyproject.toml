@@ -43,6 +43,13 @@ vision = [
     "opencv-python-headless>=4.9",
     "numpy>=1.24",
 ]
+# Google Calendar (installed on the Pi core venv; also needed on the laptop to
+# run scripts/google-auth.py once). Imported lazily so core runs without them.
+calendar = [
+    "google-api-python-client>=2.100",
+    "google-auth>=2.23",
+    "google-auth-oauthlib>=1.1",
+]
 
 # Auto-discover the service packages (+ their subpackages). Using find with
 # include patterns so adding a new top-level service (e.g. voice) needs no edit

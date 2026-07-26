@@ -22,7 +22,7 @@ sudo apt-get install -y python3-venv python3-lgpio i2c-tools
 echo "==> python venv + backend (mock hardware, base deps)"
 python3 -m venv "$VENV"
 "$PY" -m pip install -q --upgrade pip
-"$PY" -m pip install -q -e "$REPO_DIR/backend[dev]"
+"$PY" -m pip install -q -e "$REPO_DIR/backend[dev,calendar]"
 
 if [ ! -f "$REPO_DIR/frontend/dist/index.html" ]; then
   echo "!! frontend/dist is missing — run 'make frontend-build' on your laptop and"

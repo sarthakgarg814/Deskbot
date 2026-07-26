@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from . import camera, hardware, notes, settings, system, water, wifi
+from . import calendar, camera, hardware, notes, settings, system, water, wifi
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(system.router)
@@ -10,5 +10,6 @@ api_router.include_router(hardware.router)
 api_router.include_router(camera.router)
 api_router.include_router(wifi.router)
 api_router.include_router(water.router)
+api_router.include_router(calendar.router)
 
 __all__ = ["api_router"]

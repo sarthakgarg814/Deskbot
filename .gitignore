@@ -39,3 +39,6 @@ backend/.venv/
 
 # per-machine config override
 config/local.yaml
+
+# Google OAuth secrets (delivered to the Pi via rsync, never committed)
+config/google/

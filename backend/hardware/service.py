@@ -87,7 +87,7 @@ def _oled_thread(hw, pub) -> None:
     while True:
         now = time.monotonic()
         try:
-            # a transient alert (e.g. water reminder) overrides eyes/status
+            # a transient alert (water/meeting) overrides eyes/status
             alert = pub.get_state("state:oled.alert")
             if isinstance(alert, dict) and alert.get("type") == "water":
                 hw.oled.render(lambda d, w, h: draw_water(d, w, h, now))
@@ -97,6 +97,17 @@ def _oled_thread(hw, pub) -> None:
                                   {"mode": "alert", "alert": "water",
                                    "lines": ["(drink water!)"]}, ttl=5)
                 time.sleep(0.06)
+                continue
+            if isinstance(alert, dict) and alert.get("type") == "meeting":
+                title = str(alert.get("title", "Meeting"))
+                mins = int(alert.get("mins", 0))
+                lines = ["** MEETING **", title[:20], f"in {mins} min"]
+                hw.oled.show_text(lines)
+                if now - last_status >= 0.5:
+                    last_status = now
+                    pub.set_state("state:oled", {"mode": "alert", "alert": "meeting",
+                                                 "lines": lines}, ttl=5)
+                time.sleep(0.3)
                 continue
         except Exception as e:  # noqa: BLE001
             log.debug("oled alert: %s", e)

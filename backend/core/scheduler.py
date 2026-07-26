@@ -24,8 +24,11 @@ class Scheduler:
     def start(self) -> None:
         self._sched.add_job(self._sample_system, "interval", seconds=1, id="system_sample")
         self._sched.add_job(self._water_check, "interval", seconds=30, id="water_check")
+        self._sched.add_job(self._calendar_sync, "interval", minutes=5, id="calendar_sync",
+                            next_run_time=None)
+        self._sched.add_job(self._meeting_check, "interval", seconds=45, id="meeting_check")
         self._sched.start()
-        log.info("scheduler started (system sampler @ 1 Hz, water check @ 30 s)")
+        log.info("scheduler started (system 1Hz, water 30s, calendar 5m, meetings 45s)")
 
     def shutdown(self) -> None:
         if self._sched.running:
@@ -61,3 +64,46 @@ class Scheduler:
         await self._bus.publish("cmd.led.state", {"state": "reminder"})
         if buzzer:
             await self._bus.publish("cmd.buzzer.beep", {"count": 2})
+
+    async def _calendar_sync(self) -> None:
+        from common.db import session_scope
+        from core.services import calendar_service
+        from core.services.settings_service import get_value
+
+        with session_scope() as s:
+            if not bool(get_value(s, "calendar.enabled", False)):
+                return
+        try:
+            with session_scope() as s:
+                n = calendar_service.sync(s)
+            if n:
+                await self._bus.publish("calendar", {"synced": n})
+        except Exception as e:  # noqa: BLE001 — missing libs / auth / network
+            log.warning("calendar sync failed: %s", e)
+
+    async def _meeting_check(self) -> None:
+        from datetime import datetime, timezone
+
+        from common.db import session_scope
+        from core.services import calendar_service
+        from core.services.settings_service import get_value
+
+        with session_scope() as s:
+            if not bool(get_value(s, "calendar.enabled", False)):
+                return
+            within = int(get_value(s, "calendar.reminder_min", 5))
+            ev = calendar_service.due_meeting(s, within)
+            if ev is None:
+                return
+            start = ev.start_utc.replace(tzinfo=timezone.utc)
+            mins = max(0, int((start - datetime.now(timezone.utc)).total_seconds() // 60))
+            title = ev.title
+            ev.reminded = True
+
+        log.info("meeting reminder: %s in %dm", title, mins)
+        await self._bus.publish("reminder",
+                                {"type": "meeting", "message": f"{title} in {mins} min"})
+        await self._bus.set_state("state:oled.alert",
+                                  {"type": "meeting", "title": title, "mins": mins}, ttl=12)
+        await self._bus.publish("cmd.led.state", {"state": "meeting"})
+        await self._bus.publish("cmd.buzzer.beep", {"count": 3})

@@ -36,6 +36,10 @@ class RuntimeConfig:
     servo_tilt_pin: int = 13
     buzzer_pin: int = 16
     touch_pin: int = 17
+    # Google Calendar OAuth files (gitignored). client_secret.json from the Cloud
+    # console; token.json generated once by scripts/google-auth.py.
+    google_client_secret: Path = REPO_ROOT / "config" / "google" / "client_secret.json"
+    google_token: Path = REPO_ROOT / "config" / "google" / "token.json"
     db_path: Path = REPO_ROOT / "deskbot.db"
     host: str = "0.0.0.0"
     port: int = 8000
@@ -71,6 +75,8 @@ def load_config(path: Path | None = None) -> RuntimeConfig:
         servo_tilt_pin=int(rt.get("servo_tilt_pin", 13)),
         buzzer_pin=int(rt.get("buzzer_pin", 16)),
         touch_pin=int(rt.get("touch_pin", 17)),
+        google_client_secret=_resolve(REPO_ROOT, rt.get("google_client_secret", "config/google/client_secret.json")),
+        google_token=_resolve(REPO_ROOT, rt.get("google_token", "config/google/token.json")),
         db_path=_resolve(REPO_ROOT, rt.get("db_path", "deskbot.db")),
         host=rt.get("host", "0.0.0.0"),
         port=int(rt.get("port", 8000)),

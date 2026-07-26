@@ -59,6 +59,22 @@ class Note(Base):
     user: Mapped["User | None"] = relationship(back_populates="notes")
 
 
+class CalendarEvent(Base):
+    """Cache of synced Google Calendar events (source of truth is Google)."""
+
+    __tablename__ = "calendar_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    external_id: Mapped[str] = mapped_column(String(256), unique=True)
+    title: Mapped[str] = mapped_column(String(300), default="")
+    start_utc: Mapped[datetime] = mapped_column(DateTime, index=True)
+    end_utc: Mapped[datetime] = mapped_column(DateTime)
+    location: Mapped[str] = mapped_column(String(300), default="")
+    all_day: Mapped[bool] = mapped_column(Boolean, default=False)
+    reminded: Mapped[bool] = mapped_column(Boolean, default=False)
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
 class WaterEvent(Base):
     """Reminders sent and drinks logged — used to time the next reminder and
     count today's intake. Both kinds reset the reminder interval."""

@@ -7,6 +7,7 @@ const NAV = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/camera", label: "Camera" },
   { to: "/water", label: "Water" },
+  { to: "/calendar", label: "Calendar" },
   { to: "/notes", label: "Notes" },
   { to: "/hardware", label: "Hardware" },
   { to: "/wifi", label: "WiFi" },

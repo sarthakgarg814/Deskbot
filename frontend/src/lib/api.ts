@@ -95,6 +95,11 @@ export const api = {
   cameraStatus: () => req<CameraStatus>("/camera/status"),
   cameraCenter: () => req<{ ok: boolean }>("/camera/center", { method: "POST" }),
 
+  calendarAuth: () => req<CalAuth>("/calendar/auth"),
+  calendarToday: () => req<CalEvent[]>("/calendar/today"),
+  calendarUpcoming: () => req<CalEvent[]>("/calendar/upcoming"),
+  calendarSync: () => req<{ synced: number; events: CalEvent[] }>("/calendar/sync", { method: "POST" }),
+
   waterStatus: () => req<WaterStatus>("/water/status"),
   waterDrank: () => req<WaterStatus>("/water/drank", { method: "POST" }),
   waterTest: () => req<{ ok: boolean }>("/water/test", { method: "POST" }),
@@ -107,6 +112,20 @@ export const api = {
       body: JSON.stringify({ ssid, password }),
     }),
 };
+
+export interface CalEvent {
+  id: number;
+  title: string;
+  start: string;
+  end: string;
+  location: string;
+  all_day: boolean;
+}
+
+export interface CalAuth {
+  has_client_secret: boolean;
+  connected: boolean;
+}
 
 export interface WaterStatus {
   reminder_enabled: boolean;
