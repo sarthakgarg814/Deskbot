@@ -54,8 +54,15 @@ def _flow():
     )
 
 
+def _verifier_path():
+    return load_config().google_client_secret.parent / ".pkce_verifier"
+
+
 def auth_url() -> str:
-    url, _ = _flow().authorization_url(prompt="consent", access_type="offline")
+    flow = _flow()
+    url, _ = flow.authorization_url(prompt="consent", access_type="offline")
+    # PKCE: stash the verifier so the (separate) exchange request can reuse it
+    _verifier_path().write_text(getattr(flow, "code_verifier", None) or "")
     return url
 
 
@@ -69,10 +76,18 @@ def exchange(code_or_url: str) -> None:
         from urllib.parse import unquote
 
         code = unquote(m.group(1))
+
     flow = _flow()
+    vp = _verifier_path()
+    if vp.exists():
+        v = vp.read_text().strip()
+        if v:
+            flow.code_verifier = v
     flow.fetch_token(code=code)
     cfg = load_config()
     cfg.google_token.write_text(flow.credentials.to_json())
+    if vp.exists():
+        vp.unlink()
 
 
 def disconnect() -> None:
