@@ -29,8 +29,10 @@ pi = [
 ]
 dev = [
     "pytest>=8.0",
+    "pytest-asyncio>=0.23",
     "httpx>=0.27",
     "ruff>=0.4",
+    "fakeredis>=2.20",
 ]
 # Vision deps for LAPTOP/dev use (OpenCV YuNet detection, D9). On the Pi, install
 # system packages instead — `sudo apt install python3-opencv python3-picamera2` —
@@ -46,6 +48,9 @@ vision = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["common*", "core*", "hardware*", "vision*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
