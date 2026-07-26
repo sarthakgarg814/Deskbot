@@ -36,6 +36,73 @@ Design rules that matter operationally:
 See the decision log in [00-overview.md](00-overview.md#decision-log) (D3, D6, D9,
 D10, D11).
 
+## Install (one line, fresh Pi)
+
+On Raspberry Pi OS **Trixie (64-bit)**, SSH in and:
+```bash
+curl -fsSL https://raw.githubusercontent.com/sarthakgarg814/Deskbot/main/install.sh | bash
+```
+`install.sh` is idempotent (re-run to update) and does the lot: apt deps, Redis,
+`picamera2`/OpenCV, gpiozero/lgpio, clones to `~/deskbot`, fetches the YuNet model,
+builds the dashboard (installs Node), creates the three service venvs
+(`.venv` / `.venv-vision` / `.venv-hardware`), writes `config/local.yaml`
+(`bus_backend: redis`, `hardware_backend: real`), adds the hardware-PWM overlay,
+and installs + starts the `deskbot-core` / `-vision` / `-hardware` systemd units.
+Reboot once afterwards for the PWM overlay + camera. Then it's at
+`http://deskbot.local:8000` (login `deskbot`).
+
+## Authentication
+
+The dashboard and every `/api/*` endpoint (and the `/ws` socket) are
+password-protected — single-user, meant for a personal device.
+
+- **Default password:** `deskbot`. Change it in the dashboard under **Account**
+  (it stores a pbkdf2 hash in the `auth.password_hash` setting).
+- **Token:** login returns an HMAC-signed bearer token (30-day). The browser keeps
+  it in `localStorage` and sends `Authorization: Bearer …`; the socket passes it
+  as `?token=`. Signing secret: `config/.session_secret` (per-machine, gitignored,
+  rsync-excluded — so each device has its own and tokens don't cross machines).
+- **Public endpoints** (no token): `GET /api/health`, `POST /api/auth/login`,
+  `GET /api/auth/status`. Everything else 401s without a valid token.
+- Forgot the password? Delete the `auth.password_hash` row (or the whole DB — it's
+  a cache) to fall back to the `deskbot` default:
+  `sqlite3 ~/deskbot/deskbot.db "delete from settings where key='auth.password_hash'"`.
+
+## Wiring
+
+Camera is CSI ribbon; everything else is on the 40-pin header. **Servos need a
+separate 5–6 V supply with its ground tied to the Pi's ground** (don't run two
+SG90s off the Pi 5 V rail under load).
+
+| Accessory | Pi pin (BCM) | Physical pin | Notes |
+|-----------|--------------|--------------|-------|
+| Pi Camera v1.3 | — | CSI ribbon port | not GPIO |
+| OLED SSD1306 (0x3C) | SDA=GPIO2, SCL=GPIO3 | 3, 5 | + 3V3 (pin 1) + GND |
+| Pan servo (SG90) | GPIO12 (signal) | 32 | hardware PWM; V+/GND to external 5–6 V |
+| Tilt servo (SG90) | GPIO13 (signal) | 33 | hardware PWM; V+/GND to external 5–6 V |
+| Buzzer (active) | GPIO16 | 36 | + to GPIO16, − to GND |
+| Touch sensor (TTP223) | GPIO17 | 11 | OUT→17, VCC→3V3, GND→GND |
+| USB microphone | — | USB port | |
+
+```mermaid
+graph LR
+  PSU["5–6 V supply"]
+  Pi["Raspberry Pi 4"]
+  Pi -- "CSI ribbon" --> CAM["Pi Camera v1.3"]
+  Pi -- "I2C: SDA=GPIO2, SCL=GPIO3, 3V3, GND" --> OLED["OLED SSD1306 @0x3C"]
+  Pi -- "GPIO12 signal" --> PAN["Pan servo SG90"]
+  Pi -- "GPIO13 signal" --> TILT["Tilt servo SG90"]
+  PSU -- "V+ / GND" --> PAN
+  PSU -- "V+ / GND" --> TILT
+  PSU -. "GND common" .- Pi
+  Pi -- "GPIO16 / GND" --> BUZ["Buzzer"]
+  Pi -- "GPIO17 / 3V3 / GND" --> TOUCH["Touch TTP223"]
+  Pi -- "USB" --> MIC["USB mic"]
+```
+
+Pins are config (`config/defaults.yaml` runtime): `servo_pan_pin`,
+`servo_tilt_pin`, `buzzer_pin`, `touch_pin`.
+
 ## Deploy workflow
 
 Frontend is **built on the laptop** and rsynced (D5) — the Pi never runs npm.
@@ -209,5 +276,10 @@ systemctl is-active deskbot-core deskbot-vision deskbot-hardware redis-server
   toward the face, emotions) or a text status screen, rendered in a dedicated
   ~12 fps thread. Emotion is happy/sleepy on presence today; mood detection will
   drive it later.
+- ✅ **Water reminder** (presence-gated, schedule, buzzer + OLED animation)
+- ✅ **Google Calendar** (read-only OAuth from the UI, per-calendar selection,
+  meeting reminders + OLED animation, next-event on the status screen)
+- ✅ **Auth** (password login for dashboard + API, change password) + **one-line
+  installer** (`install.sh`)
 - ⬜ **Next:** mood detection (drives the eyes), LEDs (WS2812B), touch sensor +
-  screen cycling, voice (wake word + STT), calendar
+  screen cycling, voice (wake word + STT)

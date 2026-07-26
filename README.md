@@ -65,8 +65,22 @@ make setup && make frontend-install && make frontend-build && make backend
 # http://localhost:8000
 ```
 
-### Deploy to the Pi
+### Install on a Raspberry Pi — one line
+On a fresh Raspberry Pi OS (Trixie, 64-bit), SSH in and run:
 ```bash
-./scripts/deploy-to-pi.sh deskbot@deskbot.local     # laptop: build + rsync
-# first time on the Pi: ./scripts/setup-pi.sh, setup-vision-pi.sh, setup-hardware-pi.sh [--real]
+curl -fsSL https://raw.githubusercontent.com/sarthakgarg814/Deskbot/main/install.sh | bash
 ```
+Installs everything (deps, Redis, camera, GPIO, builds the dashboard, all three
+services), then it's live at **http://deskbot.local:8000**. Default login password
+is **`deskbot`** — change it under **Account**. (A reboot is needed once for the
+hardware-PWM overlay.)
+
+### Dev deploy (from your laptop)
+```bash
+./scripts/deploy-to-pi.sh deskbot@deskbot.local     # build + rsync
+# first time: ./scripts/setup-pi.sh, setup-vision-pi.sh, setup-hardware-pi.sh [--real]
+```
+
+**Auth:** the dashboard + API are password-protected (default `deskbot`). See
+[docs/06-operations.md](docs/06-operations.md#authentication). Wiring:
+[docs/06-operations.md#wiring](docs/06-operations.md#wiring).
