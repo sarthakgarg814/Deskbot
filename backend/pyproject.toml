@@ -40,8 +40,12 @@ vision = [
     "numpy>=1.24",
 ]
 
-[tool.setuptools]
-packages = ["common", "core", "hardware"]
+# Auto-discover the service packages (+ their subpackages). Using find with
+# include patterns so adding a new top-level service (e.g. voice) needs no edit
+# here, while keeping tests/ out of the installed distribution.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["common*", "core*", "hardware*", "vision*"]
 
 [tool.ruff]
 line-length = 100
