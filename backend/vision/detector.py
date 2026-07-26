@@ -55,7 +55,7 @@ class YuNetDetector:
         # Run detection at `detect_width` (downscaled) for speed. Face centering
         # uses normalized coords, so the smaller input costs ~no tracking accuracy
         # while being much faster on the Pi's CPU. 0 disables downscaling.
-        self._detect_width = detect_width
+        self.detect_width = detect_width          # public: live-tunable from settings
         self._det = cv2.FaceDetectorYN.create(
             str(model_path), "", (320, 320), score_threshold, 0.3, 5000
         )
@@ -69,9 +69,9 @@ class YuNetDetector:
         import cv2
 
         H, W = frame.shape[:2]
-        if self._detect_width and W > self._detect_width:
-            scale = self._detect_width / W
-            small = cv2.resize(frame, (self._detect_width, max(1, round(H * scale))))
+        if self.detect_width and W > self.detect_width:
+            scale = self.detect_width / W
+            small = cv2.resize(frame, (self.detect_width, max(1, round(H * scale))))
         else:
             scale, small = 1.0, frame
 

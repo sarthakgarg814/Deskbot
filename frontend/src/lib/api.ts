@@ -44,6 +44,7 @@ export interface CameraStatus {
   detect_ms?: number;
   present?: boolean;
   faces?: number;
+  preview?: boolean;
   face?: Face | null;
 }
 

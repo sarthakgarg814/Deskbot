@@ -32,9 +32,9 @@ def test_system_stats(client):
 def test_settings_seeded_and_updatable(client):
     rows = client.get("/api/settings").json()
     assert len(rows) >= 20
-    client.post("/api/settings", json=[{"key": "camera.fps", "value": 24}])
-    fps = next(r for r in client.get("/api/settings?ns=camera").json() if r["key"] == "camera.fps")
-    assert fps["value"] == 24
+    client.post("/api/settings", json=[{"key": "camera.track_fps", "value": 8}])
+    row = next(r for r in client.get("/api/settings?ns=camera").json() if r["key"] == "camera.track_fps")
+    assert row["value"] == 8
 
 
 def test_notes_crud(client):

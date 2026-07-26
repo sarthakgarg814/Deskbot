@@ -11,11 +11,6 @@ runtime:
   bus_backend: inprocess        # inprocess | redis  (laptop=inprocess; Pi w/ vision=redis)
   redis_url: redis://localhost:6379/0
   preview_port: 8090            # vision MJPEG preview port (only streams when enabled)
-  # vision CPU knobs: processing rate when present vs away, and detection size.
-  # Lower = less CPU. 10 fps present is smooth for face-follow; 2 fps idle.
-  vision_track_fps: 10
-  vision_idle_fps: 2
-  vision_detect_width: 256
   db_path: deskbot.db           # relative to repo root
   host: 0.0.0.0
   port: 8000
@@ -29,10 +24,12 @@ settings:
   - { key: system.timezone,        value: "UTC",     type: str,   namespace: system }
   - { key: system.hostname,        value: "deskbot", type: str,   namespace: system }
 
-  # --- camera / tracking ---
-  - { key: camera.fps,             value: 18,        type: int,   namespace: camera }
+  # --- camera / tracking (CPU knobs — editable live from the dashboard) ---
   - { key: camera.tracking_mode,   value: "smooth",  type: str,   namespace: camera }
   - { key: camera.sensitivity,     value: 0.5,       type: float, namespace: camera }
+  - { key: camera.track_fps,       value: 10,        type: int,   namespace: camera }  # fps when present
+  - { key: camera.idle_fps,        value: 2,         type: int,   namespace: camera }  # fps when away
+  - { key: camera.detect_width,    value: 256,       type: int,   namespace: camera }  # detect downscale px
 
   # --- servo / PID (dashboard-tunable, hot-reloaded by hardware svc) ---
   - { key: servo.pan.offset_deg,   value: 0,         type: int,   namespace: servo }

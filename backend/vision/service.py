@@ -111,6 +111,7 @@ def run(source: str, width: int, height: int, detect_width: int | None = None) -
                     "detect_ms": round(detect_ms, 1),
                     "present": present,
                     "faces": len(faces),
+                    "preview": preview.enabled,
                     "face": None if not face else {
                         "cx": round(face.cx, 3), "cy": round(face.cy, 3),
                         "err_x": round(face.err_x, 3), "err_y": round(face.err_y, 3),
@@ -120,11 +121,16 @@ def run(source: str, width: int, height: int, detect_width: int | None = None) -
                 pub.set_state("state:camera", payload, ttl=5)
                 pub.publish("camera", payload)
 
-            # refresh the preview gate flag occasionally (cheap)
+            # refresh live-tunable config (fps caps, detect size, preview) from the
+            # settings the UI edits — core mirrors them to state:vision.config.
             if now - last_flag_check >= FLAG_POLL_S:
                 last_flag_check = now
-                flag = pub.get_state("state:camera.preview_enabled")
-                preview.enabled = bool(flag.get("enabled")) if isinstance(flag, dict) else bool(flag)
+                vc = pub.get_state("state:vision.config")
+                if isinstance(vc, dict):
+                    track_dt = 1.0 / max(1, int(vc.get("track_fps", cfg.vision_track_fps)))
+                    idle_dt = 1.0 / max(1, int(vc.get("idle_fps", cfg.vision_idle_fps)))
+                    det.detect_width = int(vc.get("detect_width", det.detect_width))
+                    preview.enabled = bool(vc.get("preview_enabled", False))
 
             # encode a preview JPEG ONLY while someone is watching (else zero cost)
             if preview.enabled:

@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
 
     await app.state.ws_hub.start()
     app.state.scheduler.start()
-    mirror_task = asyncio.create_task(_mirror_preview_flag(app))
+    mirror_task = asyncio.create_task(_mirror_vision_config(app))
     log.info("core ready on %s:%s", cfg.host, cfg.port)
     try:
         yield
@@ -57,20 +57,26 @@ async def lifespan(app: FastAPI):
         log.info("core stopped")
 
 
-async def _mirror_preview_flag(app: FastAPI) -> None:
-    """Mirror the `camera.preview_enabled` setting into a bus state key the vision
-    service reads to gate its MJPEG preview. Re-mirrors whenever settings change."""
+async def _mirror_vision_config(app: FastAPI) -> None:
+    """Mirror the live-tunable camera settings into a bus state key the vision
+    service polls (fps caps, detection size, preview gate). Re-mirrors whenever
+    settings change so UI edits apply without a restart."""
     from common.db import session_scope
     from core.services.settings_service import get_value
 
-    def read() -> bool:
+    def read() -> dict:
         with session_scope() as s:
-            return bool(get_value(s, "camera.preview_enabled", False))
+            return {
+                "preview_enabled": bool(get_value(s, "camera.preview_enabled", False)),
+                "track_fps": int(get_value(s, "camera.track_fps", 10)),
+                "idle_fps": int(get_value(s, "camera.idle_fps", 2)),
+                "detect_width": int(get_value(s, "camera.detect_width", 256)),
+            }
 
     bus = app.state.bus
-    await bus.set_state("state:camera.preview_enabled", {"enabled": read()})
+    await bus.set_state("state:vision.config", read())
     async for _ in bus.subscribe("settings"):
-        await bus.set_state("state:camera.preview_enabled", {"enabled": read()})
+        await bus.set_state("state:vision.config", read())
 
 
 def create_app() -> FastAPI:
