@@ -7,6 +7,7 @@ import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
 import Hardware from "./pages/Hardware";
 import Camera from "./pages/Camera";
+import Wifi from "./pages/Wifi";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: "notes", element: <Notes /> },
       { path: "settings", element: <Settings /> },
       { path: "hardware", element: <Hardware /> },
+      { path: "wifi", element: <Wifi /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

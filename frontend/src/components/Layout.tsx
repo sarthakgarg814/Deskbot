@@ -7,6 +7,7 @@ const NAV = [
   { to: "/camera", label: "Camera" },
   { to: "/notes", label: "Notes" },
   { to: "/hardware", label: "Hardware" },
+  { to: "/wifi", label: "WiFi" },
   { to: "/settings", label: "Settings" },
 ];
 

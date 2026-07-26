@@ -94,4 +94,27 @@ export const api = {
 
   cameraStatus: () => req<CameraStatus>("/camera/status"),
   cameraCenter: () => req<{ ok: boolean }>("/camera/center", { method: "POST" }),
+
+  wifiStatus: () => req<WifiStatus>("/wifi/status"),
+  wifiScan: () => req<{ available: boolean; networks: WifiNetwork[] }>("/wifi/scan"),
+  wifiConnect: (ssid: string, password: string) =>
+    req<{ ok: boolean; message?: string }>("/wifi/connect", {
+      method: "POST",
+      body: JSON.stringify({ ssid, password }),
+    }),
 };
+
+export interface WifiStatus {
+  available: boolean;
+  connected?: boolean;
+  ssid?: string | null;
+  signal?: number | null;
+  ip?: string | null;
+}
+
+export interface WifiNetwork {
+  ssid: string;
+  signal: number;
+  security: string;
+  in_use: boolean;
+}
