@@ -119,6 +119,7 @@ export interface CalEvent {
   start: string;
   end: string;
   location: string;
+  source: string;
   all_day: boolean;
 }
 

@@ -101,7 +101,10 @@ export default function Calendar() {
         {today.map((e) => (
           <li key={e.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
             <span className="w-16 tabular-nums text-neutral-400">{when(e)}</span>
-            <span className="flex-1 truncate">{e.title}</span>
+            <span className="flex-1 truncate">
+              {e.title}
+              {e.source && <span className="ml-2 text-xs text-neutral-600">· {e.source}</span>}
+            </span>
             <span className="text-xs text-neutral-500">{countdown(e)}</span>
           </li>
         ))}

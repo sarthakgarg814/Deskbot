@@ -63,6 +63,7 @@ def sync(s: Session) -> int:
     # all calendars this account can see + has selected (primary + shared/added)
     cals = svc.calendarList().list().execute().get("items", [])
     cal_ids = [c["id"] for c in cals if c.get("selected") or c.get("primary")] or ["primary"]
+    cal_name = {c["id"]: (c.get("summaryOverride") or c.get("summary") or c["id"]) for c in cals}
 
     seen: set[str] = set()
     total = 0
@@ -82,10 +83,11 @@ def sync(s: Session) -> int:
             if row is None:
                 row = CalendarEvent(external_id=ext)
                 s.add(row)
-            row.title = it.get("summary", "(no title)")
+            row.title = it.get("summary") or "Busy"    # free/busy-shared events have no title
             row.start_utc = _parse(it["start"].get("dateTime") or it["start"].get("date"))
             row.end_utc = _parse(it["end"].get("dateTime") or it["end"].get("date"))
             row.location = it.get("location", "") or ""
+            row.source = cal_name.get(cid, "")
             row.all_day = "date" in it["start"]
             row.synced_at = now_naive
             total += 1
@@ -103,7 +105,7 @@ def _out(r: CalendarEvent) -> dict:
     return {
         "id": r.id, "title": r.title,
         "start": r.start_utc.isoformat() + "Z", "end": r.end_utc.isoformat() + "Z",
-        "location": r.location, "all_day": r.all_day,
+        "location": r.location, "source": r.source, "all_day": r.all_day,
     }
 
 

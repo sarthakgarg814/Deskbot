@@ -70,6 +70,7 @@ class CalendarEvent(Base):
     start_utc: Mapped[datetime] = mapped_column(DateTime, index=True)
     end_utc: Mapped[datetime] = mapped_column(DateTime)
     location: Mapped[str] = mapped_column(String(300), default="")
+    source: Mapped[str] = mapped_column(String(160), default="")  # calendar name
     all_day: Mapped[bool] = mapped_column(Boolean, default=False)
     reminded: Mapped[bool] = mapped_column(Boolean, default=False)
     synced_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
