@@ -32,20 +32,19 @@ print("hardware imports OK")
 PY
 
 if [ "$REAL" = "1" ]; then
-  echo "==> setting hardware_backend: real in config/local.yaml"
+  echo "==> forcing hardware_backend: real in config/local.yaml"
   python3 - "$REPO_DIR/config/local.yaml" <<'PY'
-import sys, pathlib
+import sys, pathlib, re
 p = pathlib.Path(sys.argv[1]); p.parent.mkdir(exist_ok=True)
 txt = p.read_text() if p.exists() else "runtime:\n"
-if "hardware_backend:" not in txt:
-    # ensure a runtime: block exists, then append the key under it
-    if "runtime:" not in txt:
-        txt += "runtime:\n"
-    txt = txt.replace("runtime:\n", "runtime:\n  hardware_backend: real\n", 1)
-    p.write_text(txt)
-    print("added hardware_backend: real")
+if "runtime:" not in txt:
+    txt += "runtime:\n"
+if re.search(r"^\s*hardware_backend:.*$", txt, re.M):
+    txt = re.sub(r"^\s*hardware_backend:.*$", "  hardware_backend: real", txt, flags=re.M)
 else:
-    print("hardware_backend already set — leaving as-is")
+    txt = txt.replace("runtime:\n", "runtime:\n  hardware_backend: real\n", 1)
+p.write_text(txt)
+print("hardware_backend: real")
 PY
 fi
 
@@ -69,8 +68,9 @@ WantedBy=multi-user.target
 UNIT
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now deskbot-hardware.service
-sudo systemctl restart deskbot-core.service   # pick up config/topic changes
+sudo systemctl enable deskbot-hardware.service
+sudo systemctl restart deskbot-hardware.service   # restart (enable --now no-ops if already running)
+sudo systemctl restart deskbot-core.service       # pick up config/topic changes
 sleep 2
 sudo systemctl --no-pager --lines=0 status deskbot-hardware.service || true
 
