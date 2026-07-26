@@ -43,6 +43,26 @@ def init_db(db_path: Path) -> None:
     from . import models  # noqa: F401
 
     Base.metadata.create_all(_engine)
+    _ensure_columns(_engine)
+
+
+def _ensure_columns(engine) -> None:
+    """Tiny migration: add any model columns missing from existing tables
+    (SQLite ALTER ADD COLUMN). We don't use Alembic yet; this keeps a live DB in
+    sync when columns are added to a model."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    for table in Base.metadata.sorted_tables:
+        if not insp.has_table(table.name):
+            continue
+        existing = {c["name"] for c in insp.get_columns(table.name)}
+        for col in table.columns:
+            if col.name in existing:
+                continue
+            ddl_type = col.type.compile(engine.dialect)
+            with engine.begin() as conn:
+                conn.execute(text(f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" {ddl_type}'))
 
 
 @contextmanager
