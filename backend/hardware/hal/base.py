@@ -48,6 +48,7 @@ class LedStrip(Protocol):
 @runtime_checkable
 class OledDisplay(Protocol):
     def show_text(self, lines: list[str]) -> None: ...
+    def render(self, fn) -> None: ...    # fn(draw, width, height) — custom drawing (eyes)
     def clear(self) -> None: ...
     def preview(self) -> list[str]: ...  # current lines (mock uses this for the dashboard)
 

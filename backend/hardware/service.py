@@ -28,31 +28,74 @@ log = logging.getLogger("deskbot.hw.service")
 
 CONTROL_HZ = 40
 STATE_PUB_HZ = 12
-OLED_HZ = 1
 CENTER_TTL_S = 3.0
 CONFIG_POLL_S = 2.0
 
 
-def _render_oled(hw, pub, pan: float, tilt: float, owner: str) -> None:
-    """Compose + draw the OLED status screen (and mirror it to state:oled)."""
+def _status_lines(pub) -> list[str]:
     sysd = pub.get_state("state:system") or {}
     cam = pub.get_state("state:camera") or {}
+    servo = pub.get_state("state:servo") or {}
     cpu, temp = sysd.get("cpu_percent"), sysd.get("temp_c")
-    present = cam.get("present")
-    tracking = cam.get("tracking", True)
-    have_sys = isinstance(cpu, (int, float)) and isinstance(temp, (int, float))
-    lines = [
+    have = isinstance(cpu, (int, float)) and isinstance(temp, (int, float))
+    return [
         time.strftime("DeskBot    %H:%M"),
-        f"CPU {cpu:.0f}%  {temp:.0f}C" if have_sys else "warming up...",
-        f"Face: {'present' if present else 'away'}",
-        f"Track {'ON' if tracking else 'off'}  {owner}",
-        f"Pan {pan:+.0f}  Tilt {tilt:+.0f}",
+        f"CPU {cpu:.0f}%  {temp:.0f}C" if have else "warming up...",
+        f"Face: {'present' if cam.get('present') else 'away'}",
+        f"Track {'ON' if cam.get('tracking', True) else 'off'}  {servo.get('owner', '')}",
+        f"Pan {servo.get('pan', 0):+.0f}  Tilt {servo.get('tilt', 0):+.0f}",
     ]
-    try:
-        hw.oled.show_text(lines)
-    except Exception as e:  # noqa: BLE001 — an I2C hiccup must not stop servo control
-        log.debug("oled render skipped: %s", e)
-    pub.set_state("state:oled", {"lines": lines}, ttl=5)
+
+
+def _resolve_emotion(pref: str, present: bool, pub) -> str:
+    if pref and pref != "auto":
+        return pref
+    mood = pub.get_state("state:mood") or {}      # future: mood-detection drives the eyes
+    if mood.get("mood"):
+        return mood["mood"]
+    return "happy" if present else "sleepy"
+
+
+def _oled_thread(hw, pub) -> None:
+    """OLED render loop — runs in its own thread (~12 fps) so blinking/gaze are
+    smooth and never perturb the servo control loop. Modes: eyes | status."""
+    import random
+
+    from .oled_face import draw_face
+
+    next_blink = time.monotonic() + random.uniform(2.5, 6.0)
+    blink_until = 0.0
+    last_status = 0.0
+    while True:
+        now = time.monotonic()
+        cfg = pub.get_state("state:oled.config") or {}
+        mode = cfg.get("mode", "eyes")
+        try:
+            if mode == "status":
+                if now - last_status >= 0.5:
+                    last_status = now
+                    lines = _status_lines(pub)
+                    hw.oled.show_text(lines)
+                    pub.set_state("state:oled", {"mode": "status", "lines": lines}, ttl=5)
+            else:
+                cam = pub.get_state("state:camera") or {}
+                present = bool(cam.get("present"))
+                face = cam.get("face") or {}
+                if now >= next_blink and now > blink_until:
+                    blink_until = now + 0.12
+                    next_blink = now + random.uniform(2.5, 6.0)
+                blink = now < blink_until
+                emotion = _resolve_emotion(cfg.get("emotion", "auto"), present, pub)
+                gx, gy = float(face.get("err_x") or 0.0), float(face.get("err_y") or 0.0)
+                hw.oled.render(lambda d, w, h: draw_face(d, w, h, emotion, gx, gy, blink))
+                if now - last_status >= 0.5:
+                    last_status = now
+                    pub.set_state("state:oled",
+                                  {"mode": "eyes", "emotion": emotion, "present": present,
+                                   "lines": [f"(eyes: {emotion})"]}, ttl=5)
+        except Exception as e:  # noqa: BLE001 — an I2C hiccup must not kill the thread
+            log.debug("oled thread: %s", e)
+        time.sleep(0.08)
 
 
 def _config_from_state(vc: dict | None, base: ArbiterConfig) -> ArbiterConfig:
@@ -114,11 +157,11 @@ def run() -> None:
     threading.Thread(
         target=_subscriber_thread, args=(sub, hw, commands, lock, pub), daemon=True
     ).start()
+    threading.Thread(target=_oled_thread, args=(hw, pub), daemon=True).start()
 
     period = 1.0 / CONTROL_HZ
     last_pub = 0.0
     last_cfg = 0.0
-    last_oled = 0.0
     t_prev = time.monotonic()
 
     try:
@@ -146,10 +189,6 @@ def run() -> None:
                 state = {"pan": round(pan, 1), "tilt": round(tilt, 1), "owner": arbiter.owner}
                 pub.set_state("state:servo", state, ttl=5)
                 pub.publish("servo", state)
-
-            if now - last_oled >= 1.0 / OLED_HZ:
-                last_oled = now
-                _render_oled(hw, pub, pan, tilt, arbiter.owner)
 
             time.sleep(max(0.0, period - (time.monotonic() - now)))
     finally:

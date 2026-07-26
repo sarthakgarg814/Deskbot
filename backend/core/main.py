@@ -91,11 +91,18 @@ async def _mirror_vision_config(app: FastAPI) -> None:
             "tracking_enabled": bool(get_value(s, "camera.tracking_enabled", True)),
         }
 
+    def read_oled(s) -> dict:
+        return {
+            "mode": str(get_value(s, "oled.mode", "eyes")),        # eyes | status
+            "emotion": str(get_value(s, "oled.emotion", "auto")),  # auto | happy | ...
+        }
+
     async def mirror():
         with session_scope() as s:
-            v, sv = read_vision(s), read_servo(s)
+            v, sv, ol = read_vision(s), read_servo(s), read_oled(s)
         await app.state.bus.set_state("state:vision.config", v)
         await app.state.bus.set_state("state:servo.config", sv)
+        await app.state.bus.set_state("state:oled.config", ol)
 
     await mirror()
     async for _ in app.state.bus.subscribe("settings"):

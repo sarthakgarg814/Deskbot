@@ -32,6 +32,13 @@ class RealOled:
                 draw.text((0, y), line, fill="white")
                 y += LINE_H
 
+    def render(self, fn) -> None:
+        """fn(draw, width, height) draws a custom frame (e.g. the eyes)."""
+        from luma.core.render import canvas
+
+        with canvas(self._device) as draw:
+            fn(draw, self._device.width, self._device.height)
+
     def clear(self) -> None:
         self._device.clear()
         self._lines = []

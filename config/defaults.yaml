@@ -61,6 +61,10 @@ settings:
   - { key: voice.language,         value: "en",      type: str,   namespace: voice }
   - { key: voice.confidence_min,   value: 0.6,       type: float, namespace: voice }
 
+  # --- oled (animated robot eyes on the SSD1306) ---
+  - { key: oled.mode,              value: "eyes",    type: str,   namespace: oled }  # eyes | status
+  - { key: oled.emotion,           value: "auto",    type: str,   namespace: oled }  # auto|happy|neutral|sad|angry|surprised|sleepy
+
   # --- mood ---
   - { key: mood.enabled,           value: true,      type: bool,  namespace: mood }
 

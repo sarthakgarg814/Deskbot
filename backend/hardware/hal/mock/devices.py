@@ -54,6 +54,11 @@ class MockOled:
         self._lines = list(lines)
         log.info("oled -> %s", " | ".join(self._lines))
 
+    def render(self, fn) -> None:
+        # no framebuffer on the mock — the service still publishes state:oled so
+        # the dashboard shows the current mode/emotion.
+        pass
+
     def clear(self) -> None:
         self._lines = []
 

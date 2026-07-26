@@ -102,6 +102,12 @@ Three layers, lowest to highest precedence:
 | `servo.pan.offset_deg` / `servo.tilt.offset_deg` | 0 | mechanical center trim |
 | `servo.recenter_after_s` | 3.0 | face lost this long → drift home (only when tracking enabled) |
 
+### oled (hardware service)
+| Key | Default | Effect |
+|-----|---------|--------|
+| `oled.mode` | eyes | `eyes` = animated robot eyes; `status` = text (time/CPU/temp/tracking/servo) |
+| `oled.emotion` | auto | `auto` = happy when a face is present, sleepy when away (and mood-driven later); or force `happy`/`neutral`/`sad`/`angry`/`surprised`/`sleepy` |
+
 ### runtime (config/defaults.yaml or local.yaml)
 `hardware_backend` (mock\|real), `bus_backend` (inprocess\|redis), `redis_url`,
 `servo_pan_pin` (12), `servo_tilt_pin` (13), `preview_port` (8090),
@@ -153,7 +159,9 @@ systemctl is-active deskbot-core deskbot-vision deskbot-hardware redis-server
 - ✅ **M2a** camera + YuNet face detection (17 FPS, CPU-tuned)
 - ✅ **M2b** servo arbiter + hardware-PWM pan/tilt face-follow, tracking toggle,
   return-to-home
-- ✅ **OLED** (0.96" I2C SSD1306 @ 0x3C) — status screen: time, CPU/temp,
-  presence, tracking, pan/tilt (rendered by the hardware service @ 1 Hz)
-- ⬜ **Next:** LEDs (WS2812B), touch sensor + screen cycling, voice (wake word +
-  STT), calendar, mood detection
+- ✅ **OLED** (0.96" I2C SSD1306 @ 0x3C) — **animated robot eyes** (blink, gaze
+  toward the face, emotions) or a text status screen, rendered in a dedicated
+  ~12 fps thread. Emotion is happy/sleepy on presence today; mood detection will
+  drive it later.
+- ⬜ **Next:** mood detection (drives the eyes), LEDs (WS2812B), touch sensor +
+  screen cycling, voice (wake word + STT), calendar
