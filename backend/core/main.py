@@ -76,11 +76,11 @@ async def _mirror_vision_config(app: FastAPI) -> None:
 
     def read_servo(s) -> dict:
         return {
-            "kp": float(get_value(s, "servo.pid.pan.kp", 40.0)),
-            "ki": float(get_value(s, "servo.pid.pan.ki", 0.0)),
-            "kd": float(get_value(s, "servo.pid.pan.kd", 0.0)),
-            "deadzone": float(get_value(s, "servo.deadzone", 0.06)),
-            "max_speed": float(get_value(s, "servo.max_speed", 90)),
+            "track_gain": float(get_value(s, "servo.track_gain", 0.5)),
+            "fov_pan": float(get_value(s, "servo.fov_pan", 54.0)),
+            "fov_tilt": float(get_value(s, "servo.fov_tilt", 41.0)),
+            "deadzone": float(get_value(s, "servo.deadzone", 0.04)),
+            "max_speed": float(get_value(s, "servo.max_speed", 120)),
             "limit_deg": float(get_value(s, "servo.limit_deg", 80)),
             "pan_offset": float(get_value(s, "servo.pan.offset_deg", 0)),
             "tilt_offset": float(get_value(s, "servo.tilt.offset_deg", 0)),

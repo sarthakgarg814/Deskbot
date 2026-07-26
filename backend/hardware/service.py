@@ -37,7 +37,9 @@ def _config_from_state(vc: dict | None, base: ArbiterConfig) -> ArbiterConfig:
         return base
     g = vc
     return ArbiterConfig(
-        kp=float(g.get("kp", base.kp)), ki=float(g.get("ki", base.ki)), kd=float(g.get("kd", base.kd)),
+        track_gain=float(g.get("track_gain", base.track_gain)),
+        fov_pan=float(g.get("fov_pan", base.fov_pan)),
+        fov_tilt=float(g.get("fov_tilt", base.fov_tilt)),
         deadzone=float(g.get("deadzone", base.deadzone)),
         max_speed=float(g.get("max_speed", base.max_speed)),
         limit_deg=float(g.get("limit_deg", base.limit_deg)),

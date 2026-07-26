@@ -1,15 +1,22 @@
-"""Servo arbiter + PID — the control brain (design decision D2).
+"""Servo arbiter — the control brain (design decision D2).
 
 One owner drives the servos at a time, chosen by priority:
     manual_test > center > face_tracking > idle
 Each command carries a TTL so a dead publisher (e.g. vision crash) can't hold the
 servos hostage — face-tracking targets self-expire and the arbiter falls back to
-holding position.
+holding, then drifts home.
+
+Control model — POSITION-STEP, not velocity (this is the key design):
+  The camera rides on the servo, so a face at normalized error `e` (-1..1) is
+  `e * (FOV/2)` degrees off the optical axis. On each NEW vision sample we compute
+  an absolute target = current + track_gain * e * (FOV/2), slew smoothly to it,
+  and then HOLD. We do NOT keep integrating a velocity — so once the face is in the
+  deadzone the servo settles and stops, instead of hunting. track_gain < 1 damps
+  the closed loop against vision latency (0.5 ≈ halve the error each sample).
 
 Two command modes:
-  - "angle": absolute target angle (manual test, center). Slew-limited move.
-  - "error": normalized centering error (-1..1) from vision → PID → deg/sec →
-             integrated into the angle. This is face tracking.
+  - "angle": absolute target (manual test, center) — slew to it.
+  - "error": normalized centering error from vision — position-step as above.
 
 Pure logic (no hardware, no bus) so it unit-tests cleanly.
 """
@@ -25,55 +32,37 @@ class Command:
     mode: str          # "angle" | "error"
     pan: float         # angle mode: degrees; error mode: normalized error
     tilt: float
-    expires_at: float  # monotonic seconds
-
-
-class PID:
-    def __init__(self, kp: float, ki: float, kd: float) -> None:
-        self.kp, self.ki, self.kd = kp, ki, kd
-        self._integral = 0.0
-        self._prev = 0.0
-
-    def reset(self) -> None:
-        self._integral = 0.0
-        self._prev = 0.0
-
-    def compute(self, error: float, dt: float) -> float:
-        self._integral += error * dt
-        deriv = (error - self._prev) / dt if dt > 0 else 0.0
-        self._prev = error
-        return self.kp * error + self.ki * self._integral + self.kd * deriv
+    expires_at: float  # monotonic seconds (also serves as the "new sample" marker)
 
 
 @dataclass
 class ArbiterConfig:
-    kp: float = 40.0
-    ki: float = 0.0
-    kd: float = 0.0
-    deadzone: float = 0.06
-    max_speed: float = 90.0     # deg/sec
-    limit_deg: float = 80.0     # ± clamp
+    track_gain: float = 0.5      # fraction of the geometric error corrected per sample
+    fov_pan: float = 54.0        # camera horizontal FOV (deg) — Pi cam v1.3 ≈ 54
+    fov_tilt: float = 41.0       # camera vertical FOV (deg)
+    deadzone: float = 0.04       # ignore error smaller than this (settle)
+    max_speed: float = 120.0     # deg/sec slew limit (smoothness of the move)
+    limit_deg: float = 80.0      # ± clamp
     pan_offset: float = 0.0
     tilt_offset: float = 0.0
     pan_invert: bool = False
     tilt_invert: bool = False
-    recenter_after_s: float = 3.0    # idle this long (face lost) → drift home
+    recenter_after_s: float = 3.0  # idle this long (face lost) → drift home
 
 
 class ServoArbiter:
     def __init__(self, cfg: ArbiterConfig | None = None) -> None:
         self.cfg = cfg or ArbiterConfig()
-        self.pan = 0.0             # current commanded angle (pre-offset)
+        self.pan = 0.0                 # current angle (pre-offset)
         self.tilt = 0.0
+        self._target_pan = 0.0         # where we're slewing to (settled when reached)
+        self._target_tilt = 0.0
         self.owner = "idle"
         self._idle_since: float | None = None
-        self._pan_pid = PID(self.cfg.kp, self.cfg.ki, self.cfg.kd)
-        self._tilt_pid = PID(self.cfg.kp, self.cfg.ki, self.cfg.kd)
+        self._last_stamp: float | None = None   # last processed error sample
 
     def set_config(self, cfg: ArbiterConfig) -> None:
         self.cfg = cfg
-        for pid in (self._pan_pid, self._tilt_pid):
-            pid.kp, pid.ki, pid.kd = cfg.kp, cfg.ki, cfg.kd
 
     def _active(self, commands: dict[str, Command], now: float) -> tuple[str, Command | None]:
         for owner in PRIORITY:
@@ -91,32 +80,35 @@ class ServoArbiter:
             return target
         return cur + step * (1 if target > cur else -1)
 
-    def _track(self, pid: PID, cur: float, error: float, invert: bool, dt: float) -> float:
+    def _step(self, cur: float, error: float, fov: float, invert: bool) -> float:
+        """Absolute target angle to center a face at normalized `error`."""
         e = 0.0 if abs(error) < self.cfg.deadzone else error
-        vel = pid.compute(e, dt)                                  # deg/sec
-        vel = max(-self.cfg.max_speed, min(self.cfg.max_speed, vel))
-        return cur + (-vel if invert else vel) * dt
+        delta = self.cfg.track_gain * e * (fov / 2.0)
+        return self._clamp(cur + (-delta if invert else delta))
 
     def update(self, commands: dict[str, Command], now: float, dt: float) -> tuple[float, float]:
-        """Advance one control tick. Returns the servo angles to write (with offset)."""
+        """Advance one control tick. Returns servo angles to write (with offset)."""
         owner, cmd = self._active(commands, now)
         if owner != self.owner:
-            self._pan_pid.reset()
-            self._tilt_pid.reset()
             self.owner = owner
             self._idle_since = now if owner == "idle" else None
+            self._last_stamp = None
+            self._target_pan, self._target_tilt = self.pan, self.tilt  # no jump on takeover
 
         if cmd is None:
-            # idle → hold, then drift back to home (0,0) once the face has been
-            # gone for recenter_after_s (design: return-to-home when away)
+            # idle → hold, then drift home once the face has been gone long enough
             if self._idle_since is not None and (now - self._idle_since) >= self.cfg.recenter_after_s:
-                self.pan = self._slew(self.pan, 0.0, dt)
-                self.tilt = self._slew(self.tilt, 0.0, dt)
+                self._target_pan = self._target_tilt = 0.0
         elif cmd.mode == "angle":
-            self.pan = self._slew(self.pan, self._clamp(cmd.pan), dt)
-            self.tilt = self._slew(self.tilt, self._clamp(cmd.tilt), dt)
-        else:  # "error" — face tracking
-            self.pan = self._clamp(self._track(self._pan_pid, self.pan, cmd.pan, self.cfg.pan_invert, dt))
-            self.tilt = self._clamp(self._track(self._tilt_pid, self.tilt, cmd.tilt, self.cfg.tilt_invert, dt))
+            self._target_pan = self._clamp(cmd.pan)
+            self._target_tilt = self._clamp(cmd.tilt)
+        else:  # "error" — recompute the target only on a NEW vision sample
+            if cmd.expires_at != self._last_stamp:
+                self._last_stamp = cmd.expires_at
+                self._target_pan = self._step(self.pan, cmd.pan, self.cfg.fov_pan, self.cfg.pan_invert)
+                self._target_tilt = self._step(self.tilt, cmd.tilt, self.cfg.fov_tilt, self.cfg.tilt_invert)
 
+        # one smooth slew toward the (fixed) target, then settle
+        self.pan = self._slew(self.pan, self._target_pan, dt)
+        self.tilt = self._slew(self.tilt, self._target_tilt, dt)
         return self.pan + self.cfg.pan_offset, self.tilt + self.cfg.tilt_offset
