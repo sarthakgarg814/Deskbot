@@ -37,9 +37,23 @@ def get_hardware(backend: str = "mock") -> Hardware:
         return Hardware(MockServo(), MockLed(), MockOled(), monitor, "mock")
 
     if backend == "real":
-        raise NotImplementedError(
-            "real hardware backend lands in the hardware milestone (pigpio servos, "
-            "luma.oled, rpi_ws281x). Milestone 1 runs with hardware_backend: mock."
-        )
+        # Real servos (SG90 via gpiozero/lgpio). LED + OLED stay mocked until their
+        # own milestone, so `real` today = real neck, simulated lights/display.
+        from common.config import load_config
+
+        from .mock import MockLed, MockOled
+
+        cfg = load_config()
+        try:
+            from .servo_real import RealServo
+
+            servo = RealServo(cfg.servo_pan_pin, cfg.servo_tilt_pin)
+        except Exception as e:  # noqa: BLE001
+            log.error("real servo init failed (%s) — falling back to mock servo", e)
+            from .mock import MockServo
+
+            servo = MockServo()
+        log.info("hardware backend: real (servo) + mock (led/oled)")
+        return Hardware(servo, MockLed(), MockOled(), monitor, "real")
 
     raise ValueError(f"unknown hardware backend: {backend!r}")

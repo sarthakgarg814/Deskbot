@@ -10,15 +10,15 @@ from dataclasses import asdict
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from common.bus import Bus
-from hardware.hal.factory import Hardware
+from hardware.hal.base import HardwareMonitor
 
 log = logging.getLogger("deskbot.scheduler")
 
 
 class Scheduler:
-    def __init__(self, bus: Bus, hardware: Hardware) -> None:
+    def __init__(self, bus: Bus, monitor: HardwareMonitor) -> None:
         self._bus = bus
-        self._hw = hardware
+        self._monitor = monitor
         self._sched = AsyncIOScheduler()
 
     def start(self) -> None:
@@ -31,8 +31,7 @@ class Scheduler:
             self._sched.shutdown(wait=False)
 
     async def _sample_system(self) -> None:
-        stats = self._hw.monitor.sample()
-        payload = asdict(stats)
-        payload["services"] = {"core": True, "hardware": self._hw.backend == "mock" or True}
+        payload = asdict(self._monitor.sample())
+        payload["services"] = {"core": True}
         await self._bus.set_state("state:system", payload, ttl=5)
         await self._bus.publish("system", payload)

@@ -38,6 +38,12 @@ export interface Face {
   score: number;
 }
 
+export interface ServoState {
+  pan: number;
+  tilt: number;
+  owner: string;
+}
+
 export interface CameraStatus {
   running: boolean;
   fps?: number;
@@ -77,6 +83,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ pan, tilt }),
     }),
+  servoStatus: () => req<ServoState>("/servo/status"),
   ledState: (state: string) =>
     req<{ state: string; valid_states: string[] }>("/led/state", {
       method: "POST",

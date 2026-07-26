@@ -1,7 +1,6 @@
-"""Hardware test endpoints. In Milestone 1 the mock hardware lives in-process, so
-these call it directly. On the Pi, `hardware` is a separate process and these
-become `cmd.*` publishes on the bus (docs/04-api-contract.md) — the request/
-response shape stays the same.
+"""Hardware test endpoints. Core does NOT own the devices (D2) — it publishes
+`cmd.*` to the bus and the hardware service acts on them. Live device state comes
+back via `state:*`.
 """
 from __future__ import annotations
 
@@ -10,9 +9,8 @@ from pydantic import BaseModel
 
 from common.bus import Bus
 from hardware.hal.base import LED_STATES
-from hardware.hal.factory import Hardware
 
-from .deps import get_bus, get_hardware_dep
+from .deps import get_bus
 
 router = APIRouter(tags=["hardware"])
 
@@ -27,23 +25,29 @@ class LedState(BaseModel):
 
 
 @router.post("/servo/test")
-async def servo_test(body: ServoTest, hw: Hardware = Depends(get_hardware_dep), bus: Bus = Depends(get_bus)):
-    hw.servo.set_angles(body.pan, body.tilt)
-    angles = hw.servo.get_angles()
-    state = {"pan": angles.pan, "tilt": angles.tilt, "owner": "manual_test"}
-    await bus.set_state("state:servo", state, ttl=10)
-    await bus.publish("hardware", {"device": "servo", **state})
-    return state
+async def servo_test(body: ServoTest, bus: Bus = Depends(get_bus)):
+    # highest-priority owner so a manual move overrides face tracking briefly
+    await bus.publish("cmd.servo.target", {
+        "owner": "manual_test", "mode": "angle",
+        "pan": body.pan, "tilt": body.tilt, "ttl_ms": 3000,
+    })
+    return {"pan": body.pan, "tilt": body.tilt, "owner": "manual_test"}
+
+
+@router.get("/servo/status")
+async def servo_status(bus: Bus = Depends(get_bus)):
+    state = await bus.get_state("state:servo")
+    return state or {"pan": 0, "tilt": 0, "owner": "off"}
 
 
 @router.post("/led/state")
-async def led_state(body: LedState, hw: Hardware = Depends(get_hardware_dep), bus: Bus = Depends(get_bus)):
+async def led_state(body: LedState, bus: Bus = Depends(get_bus)):
     state = body.state if body.state in LED_STATES else "idle"
-    hw.led.set_state(state)
-    await bus.publish("hardware", {"device": "led", "state": state})
-    return {"state": hw.led.get_state(), "valid_states": list(LED_STATES)}
+    await bus.publish("cmd.led.state", {"state": state})
+    return {"state": state, "valid_states": list(LED_STATES)}
 
 
 @router.get("/oled/preview")
-async def oled_preview(hw: Hardware = Depends(get_hardware_dep)):
-    return {"lines": hw.oled.preview()}
+async def oled_preview(bus: Bus = Depends(get_bus)):
+    state = await bus.get_state("state:oled")
+    return {"lines": (state or {}).get("lines", [])}

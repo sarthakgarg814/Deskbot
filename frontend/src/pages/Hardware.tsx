@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api, type ServoState } from "../lib/api";
+import { useTopic } from "../lib/ws";
 
 const LED_STATES = ["idle", "listening", "thinking", "working", "reminder", "meeting", "error", "off"];
 
@@ -9,9 +10,14 @@ export default function Hardware() {
   const [led, setLed] = useState("idle");
   const [oled, setOled] = useState<string[]>([]);
 
+  const liveServo = useTopic<ServoState>("servo");
+  const [servoSeed, setServoSeed] = useState<ServoState | null>(null);
+  const servo = liveServo ?? servoSeed;
+
   const refreshOled = async () => setOled((await api.oledPreview()).lines);
   useEffect(() => {
     refreshOled();
+    api.servoStatus().then(setServoSeed).catch(() => {});
   }, []);
 
   return (
@@ -49,6 +55,16 @@ export default function Hardware() {
           >
             Move
           </button>
+
+          {/* live position from the hardware arbiter (updates while face tracking) */}
+          <div className="mt-2 flex items-center gap-4 rounded-md bg-neutral-900/60 px-3 py-2 text-sm tabular-nums">
+            <span className="text-neutral-500">live</span>
+            <span>pan <span className="text-neutral-200">{servo ? servo.pan.toFixed(0) : "—"}°</span></span>
+            <span>tilt <span className="text-neutral-200">{servo ? servo.tilt.toFixed(0) : "—"}°</span></span>
+            <span className="ml-auto text-xs text-neutral-500">
+              driver: {servo?.owner ?? "offline"}
+            </span>
+          </div>
         </div>
       </section>
 

@@ -12,11 +12,17 @@ class MockServo:
     def __init__(self) -> None:
         self._pan = 0.0
         self._tilt = 0.0
+        self._logged_pan = 0.0
+        self._logged_tilt = 0.0
 
     def set_angles(self, pan_deg: float, tilt_deg: float) -> None:
         self._pan = max(-90.0, min(90.0, pan_deg))
         self._tilt = max(-90.0, min(90.0, tilt_deg))
-        log.info("servo -> pan=%.1f tilt=%.1f", self._pan, self._tilt)
+        # the control loop writes at 40 Hz — only log on a meaningful change so
+        # the mock doesn't flood the log
+        if abs(self._pan - self._logged_pan) >= 1.0 or abs(self._tilt - self._logged_tilt) >= 1.0:
+            self._logged_pan, self._logged_tilt = self._pan, self._tilt
+            log.info("servo -> pan=%.1f tilt=%.1f", self._pan, self._tilt)
 
     def get_angles(self) -> PanTilt:
         return PanTilt(self._pan, self._tilt)

@@ -11,6 +11,8 @@ runtime:
   bus_backend: inprocess        # inprocess | redis  (laptop=inprocess; Pi w/ vision=redis)
   redis_url: redis://localhost:6379/0
   preview_port: 8090            # vision MJPEG preview port (only streams when enabled)
+  servo_pan_pin: 12             # BCM GPIO for the pan servo signal
+  servo_tilt_pin: 13            # BCM GPIO for the tilt servo signal
   db_path: deskbot.db           # relative to repo root
   host: 0.0.0.0
   port: 8000
@@ -31,16 +33,23 @@ settings:
   - { key: camera.idle_fps,        value: 2,         type: int,   namespace: camera }  # fps when away
   - { key: camera.detect_width,    value: 256,       type: int,   namespace: camera }  # detect downscale px
 
-  # --- servo / PID (dashboard-tunable, hot-reloaded by hardware svc) ---
+  # --- servo / pan-tilt (dashboard-tunable, hot-reloaded by the hardware svc) ---
+  # Face-tracking control law: error (normalized -1..1) -> PID -> deg/sec, clamped
+  # to max_speed, integrated into the angle. kp is deg/sec at |error|=1. Flip the
+  # invert flags if a servo moves the WRONG way during bring-up.
+  - { key: servo.pan.invert,       value: false,     type: bool,  namespace: servo }
+  - { key: servo.tilt.invert,      value: false,     type: bool,  namespace: servo }
   - { key: servo.pan.offset_deg,   value: 0,         type: int,   namespace: servo }
   - { key: servo.tilt.offset_deg,  value: 0,         type: int,   namespace: servo }
-  - { key: servo.pid.pan.kp,       value: 0.08,      type: float, namespace: servo }
+  - { key: servo.limit_deg,        value: 80,        type: int,   namespace: servo }  # ± max angle
+  - { key: servo.max_speed,        value: 90,        type: int,   namespace: servo }  # deg/sec
+  - { key: servo.deadzone,         value: 0.06,      type: float, namespace: servo }  # ignore tiny error
+  - { key: servo.pid.pan.kp,       value: 40.0,      type: float, namespace: servo }
   - { key: servo.pid.pan.ki,       value: 0.0,       type: float, namespace: servo }
-  - { key: servo.pid.pan.kd,       value: 0.01,      type: float, namespace: servo }
-  - { key: servo.pid.tilt.kp,      value: 0.08,      type: float, namespace: servo }
+  - { key: servo.pid.pan.kd,       value: 0.0,       type: float, namespace: servo }
+  - { key: servo.pid.tilt.kp,      value: 40.0,      type: float, namespace: servo }
   - { key: servo.pid.tilt.ki,      value: 0.0,       type: float, namespace: servo }
-  - { key: servo.pid.tilt.kd,      value: 0.01,      type: float, namespace: servo }
-  - { key: servo.deadzone,         value: 0.03,      type: float, namespace: servo }
+  - { key: servo.pid.tilt.kd,      value: 0.0,       type: float, namespace: servo }
 
   # --- led ---
   - { key: led.brightness,         value: 0.4,       type: float, namespace: led }

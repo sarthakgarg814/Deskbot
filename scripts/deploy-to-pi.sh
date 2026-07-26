@@ -25,6 +25,7 @@ rsync -az --delete --progress --timeout=60 \
   --exclude '.git/' \
   --exclude 'backend/.venv/' \
   --exclude 'backend/.venv-vision/' \
+  --exclude 'backend/.venv-hardware/' \
   --exclude 'frontend/node_modules/' \
   --exclude '__pycache__/' \
   --exclude '*.pyc' \

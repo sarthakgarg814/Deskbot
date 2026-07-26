@@ -144,6 +144,40 @@ class LogPublisher:
         return None
 
 
+class RedisSubscriber:
+    """Sync pub/sub consumer for standalone services that must *receive* commands
+    (the hardware arbiter subscribes to cmd.servo.*). Run `listen()` in a thread."""
+
+    def __init__(self, url: str = "redis://localhost:6379/0") -> None:
+        import redis
+
+        self._r = redis.Redis.from_url(url)
+
+    def listen(self, *topics: str):
+        ps = self._r.pubsub()
+        ps.subscribe(*topics)
+        for msg in ps.listen():
+            if msg.get("type") != "message":
+                continue
+            ch = msg["channel"]
+            yield (ch.decode() if isinstance(ch, bytes) else ch), json.loads(msg["data"])
+
+
+class NullSubscriber:
+    """No-op subscriber for laptop/mock (no cross-process bus) — never yields."""
+
+    def listen(self, *topics: str):
+        while True:
+            time.sleep(3600)
+            yield  # pragma: no cover
+
+
+def make_subscriber(backend: str = "redis", url: str = "redis://localhost:6379/0"):
+    if backend == "redis":
+        return RedisSubscriber(url)
+    return NullSubscriber()
+
+
 def make_bus(backend: str = "inprocess", url: str = "redis://localhost:6379/0") -> Bus:
     """Async bus for the core consumer. inprocess (single process) | redis (D3)."""
     if backend in ("inprocess", "mock"):

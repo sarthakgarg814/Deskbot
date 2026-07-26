@@ -21,7 +21,7 @@ from common.config import load_config
 from common.db import init_db
 from common.db.seed import seed
 from common.logging import setup_logging
-from hardware.hal import get_hardware
+from hardware.hal.monitor import RealMonitor
 
 from .api import api_router
 from .scheduler import Scheduler
@@ -40,9 +40,11 @@ async def lifespan(app: FastAPI):
     app.state.config = cfg
     app.state.bus = make_bus(cfg.bus_backend, cfg.redis_url)
     log.info("bus backend: %s", cfg.bus_backend)
-    app.state.hardware = get_hardware(cfg.hardware_backend)
+    # core does NOT own the servos/LEDs (the hardware process does, D2). It keeps
+    # only a read-only system monitor and drives devices by publishing cmd.* .
+    app.state.monitor = RealMonitor()
     app.state.ws_hub = WsHub(app.state.bus)
-    app.state.scheduler = Scheduler(app.state.bus, app.state.hardware)
+    app.state.scheduler = Scheduler(app.state.bus, app.state.monitor)
 
     await app.state.ws_hub.start()
     app.state.scheduler.start()
@@ -58,25 +60,43 @@ async def lifespan(app: FastAPI):
 
 
 async def _mirror_vision_config(app: FastAPI) -> None:
-    """Mirror the live-tunable camera settings into a bus state key the vision
-    service polls (fps caps, detection size, preview gate). Re-mirrors whenever
-    settings change so UI edits apply without a restart."""
+    """Mirror live-tunable settings into bus state keys the vision + hardware
+    services poll (camera fps/detect/preview, servo PID/limits). Re-mirrors on
+    every settings change so dashboard edits apply without a restart."""
     from common.db import session_scope
     from core.services.settings_service import get_value
 
-    def read() -> dict:
-        with session_scope() as s:
-            return {
-                "preview_enabled": bool(get_value(s, "camera.preview_enabled", False)),
-                "track_fps": int(get_value(s, "camera.track_fps", 10)),
-                "idle_fps": int(get_value(s, "camera.idle_fps", 2)),
-                "detect_width": int(get_value(s, "camera.detect_width", 256)),
-            }
+    def read_vision(s) -> dict:
+        return {
+            "preview_enabled": bool(get_value(s, "camera.preview_enabled", False)),
+            "track_fps": int(get_value(s, "camera.track_fps", 10)),
+            "idle_fps": int(get_value(s, "camera.idle_fps", 2)),
+            "detect_width": int(get_value(s, "camera.detect_width", 256)),
+        }
 
-    bus = app.state.bus
-    await bus.set_state("state:vision.config", read())
-    async for _ in bus.subscribe("settings"):
-        await bus.set_state("state:vision.config", read())
+    def read_servo(s) -> dict:
+        return {
+            "kp": float(get_value(s, "servo.pid.pan.kp", 40.0)),
+            "ki": float(get_value(s, "servo.pid.pan.ki", 0.0)),
+            "kd": float(get_value(s, "servo.pid.pan.kd", 0.0)),
+            "deadzone": float(get_value(s, "servo.deadzone", 0.06)),
+            "max_speed": float(get_value(s, "servo.max_speed", 90)),
+            "limit_deg": float(get_value(s, "servo.limit_deg", 80)),
+            "pan_offset": float(get_value(s, "servo.pan.offset_deg", 0)),
+            "tilt_offset": float(get_value(s, "servo.tilt.offset_deg", 0)),
+            "pan_invert": bool(get_value(s, "servo.pan.invert", False)),
+            "tilt_invert": bool(get_value(s, "servo.tilt.invert", False)),
+        }
+
+    async def mirror():
+        with session_scope() as s:
+            v, sv = read_vision(s), read_servo(s)
+        await app.state.bus.set_state("state:vision.config", v)
+        await app.state.bus.set_state("state:servo.config", sv)
+
+    await mirror()
+    async for _ in app.state.bus.subscribe("settings"):
+        await mirror()
 
 
 def create_app() -> FastAPI:
