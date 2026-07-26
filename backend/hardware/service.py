@@ -53,6 +53,18 @@ def _fmt_uptime(sec) -> str:
     return f"{d}d {h}h" if d else (f"{h}h {m}m" if h else f"{m}m")
 
 
+def _render_stats(hw, pub) -> None:
+    """Draw the icon system-stats dashboard (shared by status mode + the flash)."""
+    from .oled_face import draw_stats
+
+    sysd = pub.get_state("state:system") or {}
+    hw.oled.render(lambda d, w, h: draw_stats(
+        d, w, h, clock=time.strftime("%H:%M"),
+        cpu=sysd.get("cpu_percent"), temp=sysd.get("temp_c"),
+        ram=sysd.get("ram_percent"), disk=sysd.get("storage_percent"),
+        uptime=_fmt_uptime(sysd.get("uptime_s")), wifi=bool(sysd)))
+
+
 def _resolve_emotion(pref: str, present: bool, pub) -> str:
     if pref and pref != "auto":
         return pref
@@ -67,7 +79,7 @@ def _oled_thread(hw, pub) -> None:
     smooth and never perturb the servo control loop. Modes: eyes | status."""
     import random
 
-    from .oled_face import draw_face, draw_stats, draw_water
+    from .oled_face import draw_face, draw_water
 
     next_blink = time.monotonic() + random.uniform(2.5, 6.0)
     blink_until = 0.0
@@ -93,11 +105,12 @@ def _oled_thread(hw, pub) -> None:
         mode = cfg.get("mode", "eyes")
         try:
             if mode == "status":
-                if now - last_status >= 0.5:
+                # always show the icon stats dashboard (same screen as the flash)
+                if now - last_status >= 1.0:
                     last_status = now
-                    lines = _status_lines(pub)
-                    hw.oled.show_text(lines)
-                    pub.set_state("state:oled", {"mode": "status", "lines": lines}, ttl=5)
+                    _render_stats(hw, pub)
+                    pub.set_state("state:oled", {"mode": "status",
+                                                 "lines": _status_lines(pub)}, ttl=5)
             else:
                 cam = pub.get_state("state:camera") or {}
                 present = bool(cam.get("present"))
@@ -107,13 +120,7 @@ def _oled_thread(hw, pub) -> None:
                 every = max(5, int(cfg.get("stats_every_s", 30)))
                 dwell = max(1, int(cfg.get("stats_dwell_s", 4)))
                 if cfg.get("stats_enabled", True) and present and (now % every) < dwell:
-                    sysd = pub.get_state("state:system") or {}
-                    hw.oled.render(lambda d, w, h: draw_stats(
-                        d, w, h, clock=time.strftime("%H:%M"),
-                        cpu=sysd.get("cpu_percent"), temp=sysd.get("temp_c"),
-                        ram=sysd.get("ram_percent"), disk=sysd.get("storage_percent"),
-                        uptime=_fmt_uptime(sysd.get("uptime_s")),
-                        wifi=bool(sysd)))
+                    _render_stats(hw, pub)
                     time.sleep(0.2)
                     continue
 

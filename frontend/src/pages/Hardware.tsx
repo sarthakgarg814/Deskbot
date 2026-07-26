@@ -110,52 +110,75 @@ export default function Hardware() {
 const EMOTIONS = ["auto", "happy", "neutral", "sad", "angry", "surprised", "sleepy"];
 
 function DisplayConfig() {
-  const [cfg, setCfg] = useState<Record<string, unknown>>({});
+  const [saved, setSaved] = useState<Record<string, unknown>>({});
+  const [dirty, setDirty] = useState<Record<string, unknown>>({});
+  const [saving, setSaving] = useState(false);
+
   const load = () =>
     api.listSettings("oled").then((rows) =>
-      setCfg(Object.fromEntries(rows.map((r) => [r.key, r.value]))),
+      setSaved(Object.fromEntries(rows.map((r) => [r.key, r.value]))),
     );
   useEffect(() => { load(); }, []);
-  const set = async (key: string, value: unknown) => {
-    setCfg((c) => ({ ...c, [key]: value }));
-    await api.updateSettings([{ key, value }]);
+
+  const upd = (key: string, value: unknown) => setDirty((d) => ({ ...d, [key]: value }));
+  const val = (key: string, def: unknown) => (key in dirty ? dirty[key] : saved[key] ?? def);
+  const nDirty = Object.keys(dirty).length;
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.updateSettings(Object.entries(dirty).map(([key, value]) => ({ key, value })));
+      await load();
+      setDirty({});
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <section className="rounded-xl border border-neutral-800 p-5">
-      <h2 className="font-medium mb-3">Display (OLED)</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-medium">Display (OLED)</h2>
+        <button
+          onClick={save}
+          disabled={nDirty === 0 || saving}
+          className="rounded-md bg-led-idle px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+        >
+          {saving ? "Saving…" : `Save${nDirty ? ` (${nDirty})` : ""}`}
+        </button>
+      </div>
       <div className="space-y-3 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-neutral-300">Mode</span>
-          <select value={String(cfg["oled.mode"] ?? "eyes")} onChange={(e) => set("oled.mode", e.target.value)}
+          <select value={String(val("oled.mode", "eyes"))} onChange={(e) => upd("oled.mode", e.target.value)}
                   className="rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1">
             <option value="eyes">eyes</option>
-            <option value="status">status text</option>
+            <option value="status">stats screen</option>
           </select>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-neutral-300">Emotion</span>
-          <select value={String(cfg["oled.emotion"] ?? "auto")} onChange={(e) => set("oled.emotion", e.target.value)}
+          <select value={String(val("oled.emotion", "auto"))} onChange={(e) => upd("oled.emotion", e.target.value)}
                   className="rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1">
             {EMOTIONS.map((e) => <option key={e} value={e}>{e}</option>)}
           </select>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-neutral-300">Flash system stats when present</span>
-          <input type="checkbox" checked={cfg["oled.stats_enabled"] !== false}
-                 onChange={(e) => set("oled.stats_enabled", e.target.checked)}
+          <span className="text-neutral-300">Flash stats when present</span>
+          <input type="checkbox" checked={val("oled.stats_enabled", true) !== false}
+                 onChange={(e) => upd("oled.stats_enabled", e.target.checked)}
                  className="h-4 w-4 accent-led-idle" />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-neutral-300">…every (sec)</span>
-          <input type="number" min={5} defaultValue={Number(cfg["oled.stats_every_s"] ?? 30)}
-                 onBlur={(e) => set("oled.stats_every_s", parseInt(e.target.value || "30", 10))}
+          <input type="number" min={5} value={Number(val("oled.stats_every_s", 30))}
+                 onChange={(e) => upd("oled.stats_every_s", parseInt(e.target.value || "30", 10))}
                  className="w-20 rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-right" />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-neutral-300">…for (sec)</span>
-          <input type="number" min={1} defaultValue={Number(cfg["oled.stats_dwell_s"] ?? 4)}
-                 onBlur={(e) => set("oled.stats_dwell_s", parseInt(e.target.value || "4", 10))}
+          <input type="number" min={1} value={Number(val("oled.stats_dwell_s", 4))}
+                 onChange={(e) => upd("oled.stats_dwell_s", parseInt(e.target.value || "4", 10))}
                  className="w-20 rounded-md bg-neutral-900 border border-neutral-800 px-2 py-1 text-right" />
         </div>
       </div>
